@@ -21,7 +21,7 @@ export const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyD
     const totalToPay = (lr.freight || 0) + totalCharges;
 
     return (
-        <div ref={ref} className="printable-area p-2 bg-white text-black font-sans min-w-[800px] lg:w-full mx-auto border-2 border-black">
+        <div ref={ref} className="printable-area p-2 bg-white text-black font-sans w-[710px] lg:w-full mx-auto border-2 border-black">
             {/* Dynamic Header */}
             <div className="flex justify-between items-start pb-4 border-b-4 border-ssk-blue">
                 <div className="w-1/4 flex justify-start">
@@ -256,7 +256,7 @@ const LRPreviewModal: React.FC<LRPreviewModalProps> = ({ isOpen, onClose, lr, co
         if (!element) return;
         
         const opt = {
-            margin:       [2, 2, 2, 2], // top, left, bottom, right in mm
+            margin:       10, // 10mm margin on all sides
             filename:     `LR-${lr.lrNo.replace('/', '_')}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
@@ -278,7 +278,7 @@ const LRPreviewModal: React.FC<LRPreviewModalProps> = ({ isOpen, onClose, lr, co
         
         try {
             const opt = {
-                margin:       [2, 2, 2, 2],
+                margin:       10, // 10mm margin on all sides
                 filename:     filename,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true, letterRendering: true },

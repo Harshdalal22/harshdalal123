@@ -92,6 +92,7 @@ const App: React.FC = () => {
             toast.success('LR generated successfully!');
         }
         setEditingLR(null);
+        setCurrentView('list');
     };
 
     const handleAddNew = () => {
@@ -121,13 +122,13 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="bg-slate-100 min-h-screen font-sans">
+        <div className="bg-gradient-to-br from-slate-50 to-gray-200 min-h-screen font-sans">
             <Toaster position="top-center" />
             <Header 
                 companyDetails={companyDetails} 
                 setCompanyDetails={setCompanyDetails}
             />
-            <main className="container mx-auto p-4 md:p-8">
+            <main className="container mx-auto p-4 md:p-6">
                 {currentView === 'list' ? (
                     <LRList 
                         lorryReceipts={lorryReceipts}

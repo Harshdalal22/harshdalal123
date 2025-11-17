@@ -30,7 +30,7 @@ const InvoiceContent = forwardRef<HTMLDivElement, { lorryReceipts: LorryReceipt[
 
 
     return (
-        <div ref={ref} className="printable-area p-4 bg-white text-black font-['Calibri',sans-serif] min-w-[800px] w-full mx-auto border-2 border-black text-sm">
+        <div ref={ref} className="printable-area p-4 bg-white text-black font-['Calibri',sans-serif] w-[710px] lg:w-full mx-auto border-2 border-black text-sm">
             {/* Header */}
             <div className="text-center text-black">
                 <p className="font-bold">JAI DADA UDMI RAM</p>
@@ -184,7 +184,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, lorryRecei
         const billedTo = lorryReceipts.length > 0 ? (lorryReceipts[0].billingTo?.name ? lorryReceipts[0].billingTo : lorryReceipts[0].consignor) : { name: 'bill' };
         
         const opt = {
-            margin:       [2, 2, 2, 2], // top, left, bottom, right in mm
+            margin:       10, // 10mm margin on all sides
             filename:     `Bill-${billedTo.name?.split(' ')[0]}-${new Date().toISOString().split('T')[0]}.pdf`,
             image:        { type: 'jpeg', quality: 1.0 },
             html2canvas:  { scale: 2, useCORS: true, letterRendering: true },

@@ -48,6 +48,12 @@
           page-break-after: auto;
         }
       }
+      /* Added for 3D UI feel */
+      input:focus, textarea:focus, select:focus {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.5);
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      }
     </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script type="importmap">
