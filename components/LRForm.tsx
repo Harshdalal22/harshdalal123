@@ -51,16 +51,17 @@ const initialLRState: Omit<LorryReceipt, 'lrNo'> = {
 };
 
 const generateNewLrNo = (existingLrs: LorryReceipt[]): string => {
-    const lrNumbers = existingLrs
+    const hrLrNumbers = existingLrs
+        .filter(lr => lr.lrNo.startsWith('HR'))
         .map(lr => parseInt(lr.lrNo.replace(/[^0-9]/g, ''), 10))
         .filter(num => !isNaN(num));
 
-    if (lrNumbers.length === 0) {
-        return 'HR/00001';
+    if (hrLrNumbers.length === 0) {
+        return 'HR00001';
     }
 
-    const maxLrNo = Math.max(...lrNumbers);
-    return `HR/${String(maxLrNo + 1).padStart(5, '0')}`;
+    const maxLrNo = Math.max(...hrLrNumbers);
+    return `HR${String(maxLrNo + 1).padStart(5, '0')}`;
 };
 
 const Fieldset: React.FC<{ legend: string; children: React.ReactNode; className?: string }> = ({ legend, children, className = '' }) => (

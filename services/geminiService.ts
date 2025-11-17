@@ -1,7 +1,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { LorryReceipt } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+// Lazily initialize the AI client to prevent crash on load if API_KEY is not set.
+let ai: GoogleGenAI | null = null;
+
+const getAiClient = (): GoogleGenAI => {
+    if (!process.env.API_KEY) {
+        // This error will be caught by the calling function's try-catch block.
+        throw new Error("API_KEY environment variable is not configured.");
+    }
+    if (!ai) {
+        ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    }
+    return ai;
+};
 
 const partyDetailsSchema = {
     type: Type.OBJECT,
@@ -31,6 +43,8 @@ export const suggestLRDetails = async (
     existingLRs: LorryReceipt[]
 ): Promise<Partial<LorryReceipt> | null> => {
     try {
+        const client = getAiClient(); // Get client on demand. This will throw if API key is missing.
+
         // Use a concise and recent set of examples for the model
         const examples = existingLRs.slice(0, 10).map(({ lrNo, truckNo, fromPlace, toPlace, consignor, consignee, invoiceNo, remark }) => 
             ({ lrNo, truckNo, fromPlace, toPlace, consignor: { name: consignor.name, address: consignor.address }, consignee: { name: consignee.name, address: consignee.address }, invoiceNo, remark })
@@ -54,7 +68,7 @@ export const suggestLRDetails = async (
             Return your suggestions as a JSON object adhering to the provided schema. Only include fields for which you have a confident suggestion. Do not suggest values for fields that are already filled in the new LR.
         `;
 
-        const response = await ai.models.generateContent({
+        const response = await client.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
