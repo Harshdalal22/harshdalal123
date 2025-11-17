@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { LorryReceipt, Item, PartyDetails, DetailedCharges } from '../types';
+import { LorryReceipt, Item, PartyDetails, DetailedCharges, CompanyDetails } from '../types';
 import LRPreviewModal from './LRPreviewModal';
-import { PlusIcon, TrashIcon, CreateIcon, ListIcon } from './icons';
+import { PlusIcon, TrashIcon, CreateIcon, ListIcon, SparklesIcon } from './icons';
+import { suggestLRDetails } from '../services/geminiService';
+import { toast } from 'react-hot-toast';
+
 
 interface LRFormProps {
     onSave: (lr: LorryReceipt) => void;
     existingLR: LorryReceipt | null;
     onCancel: () => void;
-    companyDetails: any;
+    companyDetails: CompanyDetails;
     lorryReceipts: LorryReceipt[];
 }
 
@@ -77,6 +80,8 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
     }));
     const [billingPartyType, setBillingPartyType] = useState<'Consignor' | 'Consignee' | 'Other'>('Consignor');
     const [showPreview, setShowPreview] = useState(false);
+    const [isAiLoading, setIsAiLoading] = useState(false);
+
     
     useEffect(() => {
         if (existingLR) {
@@ -186,6 +191,49 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
             setBillingPartyType('Consignor');
         }
     }
+
+    const handleAiAutofill = async () => {
+        setIsAiLoading(true);
+        const toastId = toast.loading('AI is thinking...');
+
+        try {
+            const suggestions = await suggestLRDetails(formData, lorryReceipts);
+            toast.dismiss(toastId);
+
+            if (suggestions && Object.keys(suggestions).length > 0) {
+                setFormData(prev => {
+                    const newFormData = { ...prev };
+                    const isPartyEmpty = (party: PartyDetails) => !party.name && !party.address;
+
+                    if (suggestions.consignor && isPartyEmpty(prev.consignor)) {
+                        newFormData.consignor = { ...initialPartyState, ...suggestions.consignor };
+                    }
+                    if (suggestions.consignee && isPartyEmpty(prev.consignee)) {
+                        newFormData.consignee = { ...initialPartyState, ...suggestions.consignee };
+                    }
+                    if (billingPartyType === 'Other' && suggestions.billingTo && isPartyEmpty(prev.billingTo)) {
+                        newFormData.billingTo = { ...initialPartyState, ...suggestions.billingTo };
+                    }
+                    if (suggestions.invoiceNo && !prev.invoiceNo) {
+                        newFormData.invoiceNo = suggestions.invoiceNo;
+                    }
+                    if (suggestions.remark && !prev.remark) {
+                        newFormData.remark = suggestions.remark;
+                    }
+                    return newFormData;
+                });
+                toast.success('AI suggestions applied!');
+            } else {
+                toast.error('AI could not provide suggestions. Please fill manually.');
+            }
+        } catch (error) {
+            console.error("AI Autofill Error:", error);
+            toast.dismiss(toastId);
+            toast.error('An error occurred while getting AI suggestions.');
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
     
     const renderPartySection = (title: string, partyKey: 'consignor' | 'consignee' | 'billingTo') => {
         const isDisabled = partyKey === 'billingTo' && billingPartyType !== 'Other';
@@ -213,7 +261,7 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
 
     return (
         <div className="bg-slate-50 p-4 sm:p-6 rounded-lg shadow-lg">
-             <div className="flex items-center space-x-2 mb-6 border-b pb-4">
+             <div className="flex items-center flex-wrap gap-2 mb-6 border-b pb-4">
                 <button onClick={onCancel} className="flex items-center bg-gray-100 text-gray-700 px-4 py-2 rounded-md font-semibold hover:bg-gray-200 transition-colors text-sm">
                     <ListIcon className="w-5 h-5 mr-2" />
                     View LR Details
@@ -221,6 +269,15 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
                 <button onClick={handleCreateNew} className="flex items-center bg-gray-100 text-gray-700 px-4 py-2 rounded-md font-semibold hover:bg-gray-200 transition-colors text-sm">
                     <CreateIcon className="w-5 h-5 mr-2" />
                     Create New LR
+                </button>
+                <button
+                    onClick={handleAiAutofill}
+                    disabled={isAiLoading || !formData.truckNo || !formData.fromPlace || !formData.toPlace}
+                    className="flex items-center bg-purple-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-purple-700 transition-colors text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    title={!formData.truckNo || !formData.fromPlace || !formData.toPlace ? "Please fill Truck No, From, and To fields first" : "Get AI suggestions"}
+                >
+                    <SparklesIcon className="w-5 h-5 mr-2" />
+                    {isAiLoading ? 'Thinking...' : 'AI Autofill'}
                 </button>
             </div>
             

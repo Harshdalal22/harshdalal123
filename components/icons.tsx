@@ -93,3 +93,15 @@ export const ListIcon: React.FC<IconProps> = ({ className }) => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h7.5M8.25 12h7.5m-7.5 5.25h7.5M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
     </svg>
 );
+
+export const PrintIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6 18.25m0 0a2.25 2.25 0 002.25 2.25h8.5A2.25 2.25 0 0018 18.25m-12 0A2.25 2.25 0 015.25 16H18a2.25 2.25 0 012.25 2.25m-15-1.5l-1.42-1.42a2.25 2.25 0 013.182 0l1.42 1.42M6 18.25l7.5-7.5m-7.5 7.5l-1.42-1.42M18 18.25l-7.5-7.5m7.5 7.5l1.42-1.42M18 18.25a2.25 2.25 0 00-2.25-2.25H9.75A2.25 2.25 0 007.5 18.25m10.5-1.5c-1.12 0-2.163.303-3.094.832M6.75 15.75c-1.12 0-2.163.303-3.094.832m12.188 0c1.12.001 2.163.304 3.094.832M6.75 15.75L3 13.5m0 0l-1.42 1.42a2.25 2.25 0 003.182 0L6 13.5m9 0l-1.42 1.42a2.25 2.25 0 003.182 0L18 13.5m-9 0h9" />
+    </svg>
+);
+
+export const SearchIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+    </svg>
+);

@@ -16,29 +16,29 @@ interface LRPreviewModalProps {
 declare const html2pdf: any;
 
 // A dedicated component for the LR content to be reused for screen and print.
-const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyDetails: CompanyDetails; showCompanyDetails: boolean }>(({ lr, companyDetails, showCompanyDetails }, ref) => {
+export const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyDetails: CompanyDetails; showCompanyDetails: boolean }>(({ lr, companyDetails, showCompanyDetails }, ref) => {
     const totalCharges = Object.values(lr.charges || {}).reduce((sum, charge) => sum + (Number(charge) || 0), 0);
     const totalToPay = (lr.freight || 0) + totalCharges;
 
     return (
-        <div ref={ref} className="printable-area p-2 bg-white text-black font-serif min-w-[800px] lg:w-full mx-auto border-2 border-black">
+        <div ref={ref} className="printable-area p-2 bg-white text-black font-sans min-w-[800px] lg:w-full mx-auto border-2 border-black">
             {/* Dynamic Header */}
-            <div className="flex justify-between items-center pb-2 border-b-2 border-black text-[8px]">
+            <div className="flex justify-between items-start pb-4 border-b-4 border-ssk-blue">
                 <div className="w-1/4 flex justify-start">
-                    {companyDetails.logoUrl && <img src={companyDetails.logoUrl} alt="Company Logo" className="h-16 w-auto object-contain"/>}
+                    {companyDetails.logoUrl && <img src={companyDetails.logoUrl} alt="Company Logo" className="h-24 w-auto object-contain"/>}
                 </div>
-                <div className="w-1/2 text-center">
-                    <h1 className="font-bold text-black text-lg leading-tight">{companyDetails.name}</h1>
-                    {companyDetails.tagline && <p className="text-[9px] font-semibold">{companyDetails.tagline}</p>}
-                    <p className="text-[7px] mt-1">{companyDetails.address}</p>
+                <div className="w-1/2 text-center pt-2">
+                    <h1 className="font-extrabold text-ssk-red text-4xl leading-tight">{companyDetails.name}</h1>
+                    {companyDetails.tagline && <p className="text-lg font-semibold text-ssk-blue mt-1">{companyDetails.tagline}</p>}
+                    <p className="text-sm mt-2 text-gray-700">{companyDetails.address}</p>
                 </div>
-                <div className="w-1/4 text-right flex flex-col items-end justify-between h-16">
+                <div className="w-1/4 text-right flex flex-col items-end justify-between h-24">
                     <div>
-                      <p className="font-semibold">{companyDetails.email}</p>
-                      {companyDetails.contact.map(c => <p key={c} className="font-semibold">{c}</p>)}
+                      <p className="text-sm font-semibold">{companyDetails.email}</p>
+                      {companyDetails.contact.map(c => <p key={c} className="text-sm font-semibold">{c}</p>)}
                     </div>
-                    <div className="border-2 border-black px-2 py-0.5">
-                        <span className="text-black font-bold text-[9px]">{lr.lrType.toUpperCase()}</span>
+                    <div className="bg-ssk-blue text-white px-4 py-1 rounded-md">
+                        <span className="font-bold text-base tracking-wider">{lr.lrType.toUpperCase()}</span>
                     </div>
                 </div>
             </div>
@@ -58,12 +58,12 @@ const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyDetails:
                             <p className="font-bold">PUNE</p>
                         </div>
                     </div>
-                    <div className="border border-black p-1 mt-1">
-                        <p className="font-bold text-center underline">CAUTION</p>
+                    <div className="border border-black p-1 mt-1 caution-notice-section">
+                        <p className="font-bold text-center text-red-600 text-base">CAUTION</p>
                         <p className="text-[7px]">This Consignment Will Not Be Detained Diverted,Re-Routed Or Re-Booked Without Consignee Bank Written Permission Will Be Delivered At the Destination.</p>
                     </div>
-                     <div className="border border-black p-1 mt-1 flex-grow">
-                        <p className="font-bold text-center underline">NOTICE</p>
+                     <div className="border border-black p-1 mt-1 flex-grow caution-notice-section">
+                        <p className="font-bold text-center text-red-600 text-base">NOTICE</p>
                         <p className="text-[7px]">This consignment covered in this set of special lorry receipt shall be stored at the destination under the control of the transport operator & shall be delivered to or to the order of the Consignee bank whose name is mentioned in the lorry receipt. And under no circumstances be delivered to anyone without the written authority form the consignee Bank or its order endorsed on the Consignee Copy or on a separated Letter or Authority.</p>
                     </div>
                 </div>
@@ -98,7 +98,7 @@ const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyDetails:
                         <p className="text-[8px] font-bold">Demmurrage Chargeable After 5 days Arrival Of Goods Rs. 7/per Qtl.Per Day On Weight Charged</p>
                     </div>
                     <div className="border border-black p-1 mt-1 font-bold">Address Of Delivery : <span className="font-bold text-black">{lr.addressOfDelivery}</span></div>
-                    <div className="border border-black p-1 mt-1 font-bold">Vehicle No. : <span className="font-bold text-black">{lr.truckNo}</span></div>
+                    <div className="border border-black p-1 mt-1 font-bold">Vehicle No. : <span className="font-extrabold text-black text-xl">{lr.truckNo}</span></div>
                     <div className="border-y-2 border-black p-1 mt-1 font-bold">C NOTE No. : <span className="font-bold text-black">{lr.lrNo}</span></div>
                     {lr.ewayBillNo && (
                         <div className="border-b-2 border-black p-1 font-bold text-left">
@@ -114,10 +114,10 @@ const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyDetails:
                     <div className="grid grid-cols-5 mt-1">
                         <div className="col-span-2 border border-black p-1 font-bold">DATE :</div>
                         <div className="col-span-3 border-y border-r border-black p-1 font-bold text-black">{new Date(lr.date).toLocaleDateString('en-GB')}</div>
-                        <div className="col-span-2 border-x border-b border-black p-1 font-bold">FROM :</div>
-                        <div className="col-span-3 border-r border-b border-black p-1 font-bold text-black">{lr.fromPlace}</div>
-                        <div className="col-span-2 border-x border-b border-black p-1 font-bold">TO :</div>
-                        <div className="col-span-3 border-r border-b border-black p-1 font-bold text-black">{lr.toPlace}</div>
+                        <div className="col-span-2 border-x border-b border-black p-1 font-bold flex items-center justify-center">FROM :</div>
+                        <div className="col-span-3 border-r border-b border-black p-2 font-extrabold text-black bg-gray-300 text-lg text-center">{lr.fromPlace}</div>
+                        <div className="col-span-2 border-x border-b border-black p-1 font-bold flex items-center justify-center">TO :</div>
+                        <div className="col-span-3 border-r border-b border-black p-2 font-extrabold text-black bg-gray-300 text-lg text-center">{lr.toPlace}</div>
                     </div>
                 </div>
             </div>
@@ -193,8 +193,7 @@ const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyDetails:
                         </td>
                         <td className="border-t-2 border-r-2 border-black p-1 align-top text-center font-bold text-black">{lr.freight.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td className="border-t-2 border-black p-1 align-top">
-                            <p className="mt-4">To PAY Rs. : <span className="font-bold text-black">{totalToPay.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span></p>
-                            <p className="mt-4">Paid RS. : </p>
+                            
                         </td>
                     </tr>
                     <tr>
@@ -222,7 +221,7 @@ const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyDetails:
                                     <p className="mt-2 text-[9px]">Value : <span className="font-bold text-black">{lr.invoiceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></p>
                                      <div className="grid grid-cols-2 text-[9px] mt-1">
                                         {lr.gstPaidBy && <p>GST Paid By: <span className="font-bold text-black">{lr.gstPaidBy}</span></p>}
-                                        {lr.rate > 0 && <p>Rate: <span className="font-bold text-black">{lr.rate.toLocaleString('en-IN')} / {lr.rateOn}</span></p>}
+                                        
                                     </div>
                                 </div>
                                 <div className="border-t-2 border-black mt-1 pt-1 text-[9px]">

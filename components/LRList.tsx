@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import { LorryReceipt, CompanyDetails } from '../types';
-import { PencilIcon, TrashIcon, DownloadIcon } from './icons';
-import LRPreviewModal from './LRPreviewModal';
+import { PencilIcon, TrashIcon, DownloadIcon, SearchIcon, PrintIcon } from './icons';
+import LRPreviewModal, { LRContent } from './LRPreviewModal';
 import InvoiceModal from './InvoiceModal';
 
 interface LRListProps {
@@ -16,6 +17,31 @@ const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddN
     const [previewingLR, setPreviewingLR] = useState<LorryReceipt | null>(null);
     const [selectedLRs, setSelectedLRs] = useState<string[]>([]);
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [dateRange, setDateRange] = useState({ from: '', to: '' });
+    const [isPrinting, setIsPrinting] = useState(false);
+
+    const filteredLRs = useMemo(() => {
+        return lorryReceipts.filter(lr => {
+            const lowerSearchTerm = searchTerm.toLowerCase();
+            const matchesSearch = searchTerm === '' ||
+                lr.truckNo.toLowerCase().includes(lowerSearchTerm) ||
+                lr.consignor.name.toLowerCase().includes(lowerSearchTerm) ||
+                lr.consignee.name.toLowerCase().includes(lowerSearchTerm);
+
+            const lrDate = new Date(lr.date);
+            const fromDate = dateRange.from ? new Date(dateRange.from) : null;
+            const toDate = dateRange.to ? new Date(dateRange.to) : null;
+            
+            if (fromDate) fromDate.setHours(0, 0, 0, 0);
+            if (toDate) toDate.setHours(23, 59, 59, 999);
+
+            const matchesDate = (!fromDate || lrDate >= fromDate) && (!toDate || lrDate <= toDate);
+
+            return matchesSearch && matchesDate;
+        });
+    }, [lorryReceipts, searchTerm, dateRange]);
+
 
     const handleSelectLR = (lrNo: string) => {
         setSelectedLRs(prev =>
@@ -25,13 +51,62 @@ const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddN
         );
     };
 
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            setSelectedLRs(filteredLRs.map(lr => lr.lrNo));
+        } else {
+            setSelectedLRs([]);
+        }
+    };
+    
+    const handleClearFilters = () => {
+        setSearchTerm('');
+        setDateRange({ from: '', to: '' });
+    }
+
     const lrsForInvoice = lorryReceipts.filter(lr => selectedLRs.includes(lr.lrNo));
+    const lrsToPrint = lorryReceipts.filter(lr => selectedLRs.includes(lr.lrNo));
+    const printRoot = document.getElementById('print-root');
+
+    const handlePrintSelected = () => {
+        if (lrsToPrint.length > 0) {
+            setIsPrinting(true);
+        }
+    };
+
+    useEffect(() => {
+        if (isPrinting) {
+            const handleAfterPrint = () => {
+                setIsPrinting(false);
+                window.removeEventListener('afterprint', handleAfterPrint);
+            };
+            window.addEventListener('afterprint', handleAfterPrint);
+
+            // Timeout ensures content is rendered to the portal before print dialog opens
+            const timer = setTimeout(() => {
+                window.print();
+            }, 100);
+
+            return () => {
+                clearTimeout(timer);
+                window.removeEventListener('afterprint', handleAfterPrint);
+            };
+        }
+    }, [isPrinting]);
 
     return (
         <div className="bg-white p-4 rounded-xl shadow-lg">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
                 <h2 className="text-2xl font-bold text-ssk-blue self-start sm:self-center">View LR Details</h2>
                  <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+                     <button
+                        onClick={handlePrintSelected}
+                        disabled={selectedLRs.length === 0}
+                        className="bg-gray-600 text-white font-bold py-2 px-4 rounded hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                        <PrintIcon className="w-5 h-5" />
+                        Print ({selectedLRs.length})
+                    </button>
                     <button
                         onClick={() => setIsInvoiceModalOpen(true)}
                         disabled={selectedLRs.length === 0}
@@ -48,6 +123,42 @@ const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddN
                 </div>
             </div>
 
+            {/* Filtering Toolbar */}
+            <div className="flex flex-col md:flex-row gap-4 mb-4 p-4 bg-gray-50 rounded-lg border">
+                <div className="relative flex-grow">
+                    <input
+                        type="text"
+                        placeholder="Search by Truck No, Consignor, or Consignee..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full p-2 pl-10 border rounded-md"
+                    />
+                    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                </div>
+                <div className="flex items-center gap-2">
+                    <label>From:</label>
+                    <input
+                        type="date"
+                        value={dateRange.from}
+                        onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                        className="p-2 border rounded-md"
+                    />
+                </div>
+                <div className="flex items-center gap-2">
+                    <label>To:</label>
+                    <input
+                        type="date"
+                        value={dateRange.to}
+                        onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                        className="p-2 border rounded-md"
+                    />
+                </div>
+                <button onClick={handleClearFilters} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">
+                    Clear Filters
+                </button>
+            </div>
+
+
             {/* Desktop Table View */}
             <div className="overflow-x-auto hidden md:block">
                 <table className="w-full text-sm text-left text-gray-600">
@@ -57,14 +168,8 @@ const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddN
                                 <input
                                     type="checkbox"
                                     className="h-4 w-4 text-ssk-blue focus:ring-ssk-blue border-gray-300 rounded"
-                                    onChange={(e) => {
-                                        if (e.target.checked) {
-                                            setSelectedLRs(lorryReceipts.map(lr => lr.lrNo));
-                                        } else {
-                                            setSelectedLRs([]);
-                                        }
-                                    }}
-                                    checked={selectedLRs.length > 0 && selectedLRs.length === lorryReceipts.length}
+                                    onChange={handleSelectAll}
+                                    checked={filteredLRs.length > 0 && selectedLRs.length === filteredLRs.length}
                                     />
                             </th>
                             <th scope="col" className="px-3 py-3">SR. NO</th>
@@ -82,7 +187,7 @@ const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddN
                         </tr>
                     </thead>
                     <tbody>
-                        {lorryReceipts.map((lr, index) => (
+                        {filteredLRs.map((lr, index) => (
                             <tr key={lr.lrNo} className="bg-white border-b hover:bg-gray-50">
                                  <td className="p-2">
                                      <input
@@ -118,7 +223,7 @@ const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddN
 
             {/* Mobile Card View */}
             <div className="md:hidden space-y-4">
-                {lorryReceipts.map((lr) => (
+                {filteredLRs.map((lr) => (
                     <div key={lr.lrNo} className="bg-gray-50 border rounded-lg p-3 space-y-3 shadow">
                         <div className="flex justify-between items-start">
                             <div>
@@ -170,6 +275,16 @@ const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddN
                     lorryReceipts={lrsForInvoice}
                     companyDetails={companyDetails}
                 />
+            )}
+            {isPrinting && printRoot && ReactDOM.createPortal(
+                <div>
+                    {lrsToPrint.map((lr) => (
+                        <div key={lr.lrNo} className="page-break">
+                            <LRContent lr={lr} companyDetails={companyDetails} showCompanyDetails={true} />
+                        </div>
+                    ))}
+                </div>,
+                printRoot
             )}
         </div>
     );

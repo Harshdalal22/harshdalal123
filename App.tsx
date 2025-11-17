@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { LorryReceipt, CompanyDetails } from './types';
 import LRForm from './components/LRForm';
@@ -41,29 +41,47 @@ const initialLorryReceipts: LorryReceipt[] = [
     }
 ];
 
+const defaultCompanyDetails: CompanyDetails = {
+    name: 'SSK CARGO SERVICES PVT LTD',
+    logoUrl: 'https://i.imgur.com/Jkvt1tM.png',
+    signatureImageUrl: 'https://i.imgur.com/jfn26fD.png',
+    tagline: '',
+    address: 'Shop No-37, New Anaj Mandi, Sampla, Rohta-124501',
+    email: 'sskcargoservices@gmail.com',
+    web: '',
+    contact: ['7834819005', '8929920007'],
+    pan: 'ABQCS8517E',
+    gstn: '06ABQCS8517E1Z0',
+    bankDetails: {
+        name: 'SBI BANK',
+        branch: 'MDU ROHTAK, HARYANA',
+        accountNo: '44387051887',
+        ifscCode: 'SBIN0004734'
+    }
+};
+
 
 const App: React.FC = () => {
     const [lorryReceipts, setLorryReceipts] = useState<LorryReceipt[]>(initialLorryReceipts);
     const [editingLR, setEditingLR] = useState<LorryReceipt | null>(null);
-    const [companyDetails, setCompanyDetails] = useState<CompanyDetails>({
-        name: 'SSK CARGO SERVICES PVT LTD',
-        logoUrl: 'https://i.imgur.com/Jkvt1tM.png',
-        signatureImageUrl: 'https://i.imgur.com/jfn26fD.png',
-        tagline: '',
-        address: 'Shop No-37, New Anaj Mandi, Sampla, Rohta-124501',
-        email: 'sskcargoservices@gmail.com',
-        web: '',
-        contact: ['7834819005', '8929920007'],
-        pan: 'ABQCS8517E',
-        gstn: '06ABQCS8517E1Z0',
-        bankDetails: {
-            name: 'SBI BANK',
-            branch: 'MDU ROHTAK, HARYANA',
-            accountNo: '44387051887',
-            ifscCode: 'SBIN0004734'
+    const [companyDetails, setCompanyDetails] = useState<CompanyDetails>(() => {
+        try {
+            const savedDetails = localStorage.getItem('companyDetails');
+            return savedDetails ? JSON.parse(savedDetails) : defaultCompanyDetails;
+        } catch (error) {
+            console.error("Error reading company details from localStorage:", error);
+            return defaultCompanyDetails;
         }
     });
     const [currentView, setCurrentView] = useState<'list' | 'form'>('list');
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('companyDetails', JSON.stringify(companyDetails));
+        } catch (error) {
+            console.error("Error saving company details to localStorage:", error);
+        }
+    }, [companyDetails]);
 
     const handleSaveLR = (lr: LorryReceipt) => {
         if (editingLR) {

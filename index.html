@@ -41,6 +41,12 @@
           size: A4;
           margin: 0;
         }
+        .page-break {
+          page-break-after: always;
+        }
+        .page-break:last-child {
+          page-break-after: auto;
+        }
       }
     </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
