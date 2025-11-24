@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { LorryReceipt } from '../types';
+import { getRecentLorryReceiptsForAI } from './supabaseService';
 
 // Lazily initialize the AI client to prevent crash on load if API_KEY is not set.
 let ai: GoogleGenAI | null = null;
@@ -39,16 +40,13 @@ const responseSchema = {
 };
 
 export const suggestLRDetails = async (
-    currentLR: LorryReceipt,
-    existingLRs: LorryReceipt[]
+    currentLR: LorryReceipt
 ): Promise<Partial<LorryReceipt> | null> => {
     try {
         const client = getAiClient(); // Get client on demand. This will throw if API key is missing.
 
-        // Use a concise and recent set of examples for the model
-        const examples = existingLRs.slice(0, 10).map(({ lrNo, truckNo, fromPlace, toPlace, consignor, consignee, invoiceNo, remark }) => 
-            ({ lrNo, truckNo, fromPlace, toPlace, consignor: { name: consignor.name, address: consignor.address }, consignee: { name: consignee.name, address: consignee.address }, invoiceNo, remark })
-        );
+        // Fetch recent LRs directly from Supabase for context
+        const examples = await getRecentLorryReceiptsForAI(10);
 
         const prompt = `
             You are an intelligent assistant for a logistics company helping fill out a Lorry Receipt (LR) form.
@@ -68,6 +66,7 @@ export const suggestLRDetails = async (
             Return your suggestions as a JSON object adhering to the provided schema. Only include fields for which you have a confident suggestion. Do not suggest values for fields that are already filled in the new LR.
         `;
 
+        // FIX: Replaced `prompt` with `contents` and updated model name per Gemini API guidelines.
         const response = await client.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
@@ -77,7 +76,7 @@ export const suggestLRDetails = async (
             },
         });
 
-        const text = response.text.trim();
+        const text = response.text?.trim();
         if (text) {
             return JSON.parse(text) as Partial<LorryReceipt>;
         }
@@ -85,6 +84,10 @@ export const suggestLRDetails = async (
 
     } catch (error) {
         console.error("Error calling Gemini API:", error);
-        return null;
+        // Propagate the error message to be displayed in a toast
+        if (error instanceof Error) {
+            throw new Error(`AI Service Error: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred in the AI service.");
     }
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { LorryReceipt, CompanyDetails } from '../types';
-import { PencilIcon, TrashIcon, DownloadIcon, SearchIcon, PrintIcon, FilterIcon, DotsVerticalIcon } from './icons';
+import { PencilIcon, TrashIcon, DownloadIcon, SearchIcon, PrintIcon, FilterIcon, DotsVerticalIcon, DashboardIcon } from './icons';
 import LRPreviewModal, { LRContent } from './LRPreviewModal';
 import InvoiceModal from './InvoiceModal';
 
@@ -11,9 +11,10 @@ interface LRListProps {
     onDelete: (lrNo: string) => void;
     onAddNew: () => void;
     companyDetails: CompanyDetails;
+    onBackToDashboard: () => void;
 }
 
-const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddNew, companyDetails }) => {
+const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddNew, companyDetails, onBackToDashboard }) => {
     const [previewingLR, setPreviewingLR] = useState<LorryReceipt | null>(null);
     const [selectedLRs, setSelectedLRs] = useState<string[]>([]);
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
@@ -117,7 +118,12 @@ const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddN
     return (
         <div className="bg-white/70 backdrop-blur-sm p-4 rounded-xl shadow-lg">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
-                <h2 className="text-2xl font-bold text-ssk-blue self-start sm:self-center">View LR Details</h2>
+                <div className="flex items-center gap-4 self-start sm:self-center">
+                    <button onClick={onBackToDashboard} className="p-2 rounded-full hover:bg-gray-200 transition-colors" aria-label="Back to Dashboard">
+                        <DashboardIcon className="w-6 h-6 text-gray-600"/>
+                    </button>
+                    <h2 className="text-2xl font-bold text-ssk-blue">View LR Details</h2>
+                </div>
                  <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
                      <button
                         onClick={handlePrintSelected}

@@ -192,7 +192,7 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
         const toastId = toast.loading('AI is thinking...');
 
         try {
-            const suggestions = await suggestLRDetails(formData, lorryReceipts);
+            const suggestions = await suggestLRDetails(formData);
             toast.dismiss(toastId);
 
             if (suggestions && Object.keys(suggestions).length > 0) {
@@ -224,7 +224,7 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
         } catch (error) {
             console.error("AI Autofill Error:", error);
             toast.dismiss(toastId);
-            toast.error('An error occurred while getting AI suggestions.');
+            toast.error(error instanceof Error ? error.message : 'An error occurred while getting AI suggestions.');
         } finally {
             setIsAiLoading(false);
         }
@@ -249,7 +249,8 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
         );
     }
     
-    const totalCharges = Object.values(formData.charges).reduce((sum, charge) => sum + (charge || 0), 0);
+    // FIX: Cast charge to number before adding, as Object.values can return unknown type.
+    const totalCharges = Object.values(formData.charges).reduce((sum, charge) => sum + (Number(charge) || 0), 0);
     const inputClass = "w-full p-2 border-gray-300 bg-white rounded-md text-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-ssk-blue focus:border-transparent transition-all duration-200";
     const labelClass = "block text-xs font-bold text-gray-600 uppercase mb-1";
 
@@ -413,6 +414,7 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
                         </div>
                         <div>
                             <label className={labelClass}>GRAND TOTAL</label>
+                            {/* FIX: Cast formData.freight to number before addition to prevent type errors. */}
                             <input type="number" value={(Number(formData.freight) || 0) + totalCharges} readOnly className={`${inputClass} bg-green-100 border-green-300 font-bold cursor-not-allowed`} />
                         </div>
                     </Fieldset>

@@ -4,16 +4,19 @@ import { CogIcon, XIcon } from './icons';
 
 interface HeaderProps {
     companyDetails: CompanyDetails;
-    setCompanyDetails: React.Dispatch<React.SetStateAction<CompanyDetails>>;
+    setCompanyDetails: (details: CompanyDetails) => Promise<boolean>;
 }
 
 const Header: React.FC<HeaderProps> = ({ companyDetails, setCompanyDetails }) => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [localDetails, setLocalDetails] = useState(companyDetails);
 
-    const handleSaveSettings = () => {
-        setCompanyDetails(localDetails);
-        setIsSettingsOpen(false);
+    const handleSaveSettings = async () => {
+        const success = await setCompanyDetails(localDetails);
+        if (success) {
+            setIsSettingsOpen(false);
+        }
+        // If not successful, modal stays open for user to retry or check console.
     };
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -17,6 +17,7 @@ declare const html2pdf: any;
 
 // A dedicated component for the LR content to be reused for screen and print.
 export const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyDetails: CompanyDetails; showCompanyDetails: boolean }>(({ lr, companyDetails, showCompanyDetails }, ref) => {
+    // FIX: Cast charge to number before adding, as Object.values can return unknown type.
     const totalCharges = Object.values(lr.charges || {}).reduce((sum, charge) => sum + (Number(charge) || 0), 0);
     const totalToPay = (lr.freight || 0) + totalCharges;
 
@@ -181,13 +182,14 @@ export const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyD
                         <td className="border-t-2 border-r-2 border-black p-1 text-center align-top font-bold text-black">{lr.chargedWeight}</td>
                         <td className="border-t-2 border-r-2 border-black p-0 align-top bg-blue-50">
                             <div className="grid grid-cols-2 h-full text-center">
-                                <div className="border-b border-r border-black p-1">Hamail</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges?.hamail > 0 ? lr.charges.hamail.toFixed(2) : ''}</div>
-                                <div className="border-b border-r border-black p-1">Sur.CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges?.surCharge > 0 ? lr.charges.surCharge.toFixed(2) : ''}</div>
-                                <div className="border-b border-r border-black p-1">St.CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges?.stCharge > 0 ? lr.charges.stCharge.toFixed(2) : ''}</div>
-                                <div className="border-b border-r border-black p-1">Collection CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges?.collectionCharge > 0 ? lr.charges.collectionCharge.toFixed(2) : ''}</div>
-                                <div className="border-b border-r border-black p-1">D.Dty CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges?.ddCharge > 0 ? lr.charges.ddCharge.toFixed(2) : ''}</div>
-                                <div className="border-b border-r border-black p-1">Other CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges?.otherCharge > 0 ? lr.charges.otherCharge.toFixed(2) : ''}</div>
-                                <div className="border-b border-r border-black p-1">Risk CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges?.riskCharge > 0 ? lr.charges.riskCharge.toFixed(2) : ''}</div>
+                                {/* FIX: Cast charge values to Number to allow comparison and formatting, preventing type errors. */}
+                                <div className="border-b border-r border-black p-1">Hamail</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number(lr.charges.hamail) > 0 ? Number(lr.charges.hamail).toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">Sur.CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number(lr.charges.surCharge) > 0 ? Number(lr.charges.surCharge).toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">St.CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number(lr.charges.stCharge) > 0 ? Number(lr.charges.stCharge).toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">Collection CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number(lr.charges.collectionCharge) > 0 ? Number(lr.charges.collectionCharge).toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">D.Dty CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number(lr.charges.ddCharge) > 0 ? Number(lr.charges.ddCharge).toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">Other CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number(lr.charges.otherCharge) > 0 ? Number(lr.charges.otherCharge).toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">Risk CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number(lr.charges.riskCharge) > 0 ? Number(lr.charges.riskCharge).toFixed(2) : ''}</div>
                                 <div className="border-r border-black p-1 font-bold">Total</div><div className="p-1 font-bold text-black">{totalCharges > 0 ? totalCharges.toFixed(2) : ''}</div>
                             </div>
                         </td>
