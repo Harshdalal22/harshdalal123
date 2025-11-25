@@ -68,6 +68,7 @@ export const suggestLRDetails = async (
 
         // FIX: Replaced `prompt` with `contents` and updated model name per Gemini API guidelines.
         const response = await client.models.generateContent({
+            // FIX: Updated model name to a valid, non-deprecated version as per Gemini API guidelines. The model 'gemini-1.5-flash' is deprecated.
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {

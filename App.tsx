@@ -1,19 +1,28 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
-import { LorryReceipt, CompanyDetails } from './types';
+import { LorryReceipt, CompanyDetails, LRStatus } from './types';
 import LRForm from './components/LRForm';
 import LRList from './components/LRList';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
+import Auth from './components/Auth';
+import PODUploadModal from './components/PODUploadModal';
 import { 
     getLorryReceipts, 
     saveLorryReceipt, 
     deleteLorryReceipt, 
     getCompanyDetails, 
-    saveCompanyDetails 
+    saveCompanyDetails,
+    subscribeToAuthState,
+    signOut,
+    getSession,
+    updateLorryReceiptStatus,
+    uploadPOD,
+    uploadCompanyAsset
 } from './services/supabaseService';
+import { Session, Subscription } from '@supabase/supabase-js';
 
-// Default details to use if nothing is in the database yet
+
 const defaultCompanyDetails: CompanyDetails = {
     name: 'SSK CARGO SERVICES PVT LTD',
     logoUrl: 'https://i.imgur.com/Jkvt1tM.png',
@@ -35,67 +44,187 @@ const defaultCompanyDetails: CompanyDetails = {
 
 
 const App: React.FC = () => {
+    const [session, setSession] = useState<Session | null>(null);
     const [lorryReceipts, setLorryReceipts] = useState<LorryReceipt[]>([]);
     const [editingLR, setEditingLR] = useState<LorryReceipt | null>(null);
     const [companyDetails, setCompanyDetails] = useState<CompanyDetails>(defaultCompanyDetails);
     const [currentView, setCurrentView] = useState<'dashboard' | 'list' | 'form'>('dashboard');
     const [isLoading, setIsLoading] = useState(true);
+    const [uploadingPODFor, setUploadingPODFor] = useState<LorryReceipt | null>(null);
+
+    // Centralized error handler for consistent user feedback
+    const handleError = (error: unknown, context: string) => {
+        let errorMessage = 'An unknown error occurred.';
+
+        // More robust error message extraction
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        } else if (typeof error === 'object' && error !== null && 'message' in error && typeof (error as any).message === 'string') {
+            // Handle Supabase error objects which might not be instances of Error
+            errorMessage = (error as any).message;
+        } else if (typeof error === 'string') {
+            errorMessage = error;
+        }
+
+        console.error(`${context}:`, error); // Log the full error for debugging
+
+        if (errorMessage.toLowerCase().includes('failed to fetch')) {
+            toast.error(
+                (t) => (
+                    <div className="flex flex-col gap-2">
+                        <p className="font-bold">Connection Failed: Could not connect to the database.</p>
+                        <p>
+                            <span className="font-bold">ACTION REQUIRED:</span> This is likely a CORS issue. You MUST add this application's URL to your Supabase project's "CORS Origins" settings in the API section of your dashboard.
+                        </p>
+                        <button
+                            onClick={() => toast.dismiss(t.id)}
+                            className="mt-2 w-full bg-ssk-red text-white px-3 py-1 rounded-md text-sm font-semibold"
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                ),
+                { duration: Infinity, id: 'fetch-error' }
+            );
+        } else {
+            toast.error(`${context}: ${errorMessage}`, { duration: 8000 });
+        }
+    };
+
 
     useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
+        let authSubscription: Subscription | null = null;
+
+        const setupAuth = async () => {
             try {
-                const [lrs, details] = await Promise.all([
-                    getLorryReceipts(),
-                    getCompanyDetails(defaultCompanyDetails)
-                ]);
-                setLorryReceipts(lrs);
-                setCompanyDetails(details);
+                const currentSession = await getSession();
+                setSession(currentSession);
+                
+                if (!currentSession) {
+                    setIsLoading(false);
+                }
+
+                const { data } = subscribeToAuthState((_event, session) => {
+                    setSession(session);
+                    if (!session) {
+                        setLorryReceipts([]);
+                        setCompanyDetails(defaultCompanyDetails);
+                        setCurrentView('dashboard');
+                    }
+                });
+                authSubscription = data.subscription;
+                
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-                console.error("Failed to fetch initial data:", error);
-                toast.error(
-                    `Failed to load data: ${errorMessage}. Please check your Supabase configuration and network connection.`, 
-                    { duration: 8000 }
-                );
-            } finally {
+                handleError(error, "Failed to initialize authentication");
                 setIsLoading(false);
             }
         };
 
-        fetchData();
+        setupAuth();
+
+        return () => {
+            authSubscription?.unsubscribe();
+        };
     }, []);
+
+    const fetchData = useCallback(async () => {
+        if (!session) return;
+        setIsLoading(true);
+        try {
+            const [lrs, details] = await Promise.all([
+                getLorryReceipts(),
+                getCompanyDetails(defaultCompanyDetails)
+            ]);
+            setLorryReceipts(lrs);
+            setCompanyDetails(details);
+        } catch (error) {
+            handleError(error, "Failed to load initial data");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [session]);
+
+    useEffect(() => {
+        if (session) {
+            fetchData();
+        }
+    }, [session, fetchData]);
+
 
     const handleSaveLR = async (lr: LorryReceipt) => {
         const toastId = toast.loading(editingLR ? 'Updating LR...' : 'Saving LR...');
         try {
-            // Sanitize the LR data before sending it to the database
+            const isNew = !editingLR;
             const lrToSave = {
                 ...lr,
                 invoiceDate: lr.invoiceDate || null,
                 poDate: lr.poDate || null,
                 ewayBillDate: lr.ewayBillDate || null,
                 ewayExDate: lr.ewayExDate || null,
+                status: isNew ? 'Booked' : lr.status,
             };
 
             const savedLr = await saveLorryReceipt(lrToSave);
-            if (editingLR) {
-                setLorryReceipts(lorryReceipts.map(r => r.lrNo === savedLr.lrNo ? savedLr : r));
-                toast.success('LR updated successfully!');
-            } else {
+            if (isNew) {
                 setLorryReceipts([savedLr, ...lorryReceipts]);
-                toast.success('LR generated successfully!');
+                toast.success('LR generated successfully!', { id: toastId });
+            } else {
+                setLorryReceipts(lorryReceipts.map(r => r.lrNo === savedLr.lrNo ? savedLr : r));
+                toast.success('LR updated successfully!', { id: toastId });
             }
             setEditingLR(null);
             setCurrentView('list');
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-            console.error("Failed to save LR:", error);
-            toast.error(`Failed to save LR: ${errorMessage}`);
-        } finally {
             toast.dismiss(toastId);
+            handleError(error, "Failed to save LR");
         }
     };
+    
+    const handleUpdateLRStatus = async (lrNo: string, status: LRStatus) => {
+        const originalLRs = [...lorryReceipts];
+        const updatedLRs = lorryReceipts.map(lr => 
+            lr.lrNo === lrNo ? { ...lr, status } : lr
+        );
+        setLorryReceipts(updatedLRs);
+
+        const toastId = toast.loading(`Updating status to ${status}...`);
+        try {
+            const updatedLR = await updateLorryReceiptStatus(lrNo, status);
+            setLorryReceipts(lrs => lrs.map(lr => lr.lrNo === lrNo ? updatedLR : lr));
+            toast.success('Status updated successfully!', { id: toastId });
+        } catch (error) {
+            setLorryReceipts(originalLRs);
+            toast.dismiss(toastId);
+            handleError(error, "Failed to update status");
+        }
+    };
+    
+    const handleUploadPOD = async (lr: LorryReceipt, file: File) => {
+        const toastId = toast.loading('Uploading POD...');
+        try {
+            const updatedLR = await uploadPOD(file, lr.lrNo);
+            setLorryReceipts(lorryReceipts.map(r => r.lrNo === updatedLR.lrNo ? updatedLR : r));
+            toast.success('POD uploaded successfully!', { id: toastId });
+            setUploadingPODFor(null);
+        } catch (error) {
+            toast.dismiss(toastId);
+            handleError(error, "Failed to upload POD");
+        }
+    };
+    
+    const handleUploadCompanyAsset = async (file: File, assetType: 'logo' | 'signature'): Promise<string | null> => {
+        const toastId = toast.loading(`Uploading ${assetType}...`);
+        try {
+            const url = await uploadCompanyAsset(file, assetType);
+            toast.success(`${assetType.charAt(0).toUpperCase() + assetType.slice(1)} uploaded successfully!`, { id: toastId });
+            return url;
+        } catch (error) {
+            toast.dismiss(toastId);
+            handleError(error, `Failed to upload ${assetType}`);
+            return null;
+        }
+    };
+
 
     const handleAddNew = () => {
         setEditingLR(null);
@@ -125,13 +254,10 @@ const App: React.FC = () => {
             try {
                 await deleteLorryReceipt(lrNo);
                 setLorryReceipts(lorryReceipts.filter(lr => lr.lrNo !== lrNo));
-                toast.success('LR deleted successfully!');
+                toast.success('LR deleted successfully!', { id: toastId });
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-                console.error("Failed to delete LR:", error);
-                toast.error(`Failed to delete LR: ${errorMessage}`);
-            } finally {
                 toast.dismiss(toastId);
+                handleError(error, "Failed to delete LR");
             }
         }
     };
@@ -146,15 +272,23 @@ const App: React.FC = () => {
         try {
             const savedDetails = await saveCompanyDetails(details);
             setCompanyDetails(savedDetails);
-            toast.success('Settings saved successfully!');
-            return true; // Indicate success
+            toast.success('Settings saved successfully!', { id: toastId });
+            return true;
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-            console.error("Failed to save settings:", error);
-            toast.error(`Failed to save settings: ${errorMessage}`);
-            return false; // Indicate failure
-        } finally {
             toast.dismiss(toastId);
+            handleError(error, "Failed to save settings");
+            return false;
+        }
+    };
+    
+    const handleSignOut = async () => {
+        const toastId = toast.loading('Signing out...');
+        try {
+            await signOut();
+            toast.success('Signed out successfully.', { id: toastId });
+        } catch (error) {
+            toast.dismiss(toastId);
+            handleError(error, "Sign out failed");
         }
     };
 
@@ -178,6 +312,8 @@ const App: React.FC = () => {
                         companyDetails={companyDetails}
                         onAddNew={handleAddNew}
                         onBackToDashboard={handleBackToDashboard}
+                        onUpdateStatus={handleUpdateLRStatus}
+                        onOpenPODUploader={(lr) => setUploadingPODFor(lr)}
                     />
                 );
             case 'form':
@@ -204,23 +340,43 @@ const App: React.FC = () => {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <p className="mt-4 text-lg font-semibold text-gray-700">Loading Data...</p>
-                    <p className="mt-2 text-sm text-gray-500">Connecting to database. If this takes too long, check your Supabase configuration.</p>
+                    <p className="mt-4 text-lg font-semibold text-gray-700">Loading Application...</p>
                 </div>
             </div>
         );
     }
+
+    if (!session) {
+        return (
+             <div className="bg-gradient-to-br from-slate-50 to-gray-200 min-h-screen font-sans">
+                 <Toaster position="top-center" />
+                 <Auth />
+            </div>
+        );
+    }
+
 
     return (
         <div className="bg-gradient-to-br from-slate-50 to-gray-200 min-h-screen font-sans">
             <Toaster position="top-center" />
             <Header 
                 companyDetails={companyDetails} 
-                setCompanyDetails={handleUpdateCompanyDetails}
+                onUpdateDetails={handleUpdateCompanyDetails}
+                onUploadAsset={handleUploadCompanyAsset}
+                userEmail={session.user.email}
+                onSignOut={handleSignOut}
             />
             <main className="container mx-auto p-4 md:p-6">
                 {renderContent()}
             </main>
+            {uploadingPODFor && (
+                <PODUploadModal 
+                    isOpen={!!uploadingPODFor}
+                    onClose={() => setUploadingPODFor(null)}
+                    lr={uploadingPODFor}
+                    onUpload={handleUploadPOD}
+                />
+            )}
         </div>
     );
 };

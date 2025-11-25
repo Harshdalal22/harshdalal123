@@ -20,6 +20,7 @@ const initialChargesState: DetailedCharges = {
     hamail: 0, surCharge: 0, stCharge: 0, collectionCharge: 0, ddCharge: 0, otherCharge: 0, riskCharge: 0
 };
 
+// FIX: Added missing 'status' property required by the LorryReceipt type.
 const initialLRState: Omit<LorryReceipt, 'lrNo'> = {
     lrType: 'Original',
     truckNo: '',
@@ -48,6 +49,7 @@ const initialLRState: Omit<LorryReceipt, 'lrNo'> = {
     rate: 0,
     rateOn: 'Ton',
     remark: '',
+    status: 'Booked',
 };
 
 const generateNewLrNo = (existingLrs: LorryReceipt[]): string => {

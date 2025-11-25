@@ -1,5 +1,5 @@
 import React, { useRef, forwardRef, useState } from 'react';
-import ReactDOM from 'react-dom';
+import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
 import { LorryReceipt, CompanyDetails } from '../types';
 import { DownloadIcon, WhatsAppIcon, EmailIcon, XIcon, SaveIcon, PhoneIcon } from './icons';
@@ -320,7 +320,7 @@ const LRPreviewModal: React.FC<LRPreviewModalProps> = ({ isOpen, onClose, lr, co
     return (
         <div className="fixed inset-0 bg-black/70 z-50 flex justify-center items-start p-2 sm-p-4 overflow-auto">
             {/* Render a copy of the content specifically for printing, outside the visible modal */}
-            {printRoot && ReactDOM.createPortal(<LRContent lr={lr} companyDetails={companyDetails} showCompanyDetails={showCompanyDetails} />, printRoot)}
+            {printRoot && createPortal(<LRContent lr={lr} companyDetails={companyDetails} showCompanyDetails={showCompanyDetails} />, printRoot)}
 
             {/* The visible modal for on-screen preview */}
             <div className="bg-white rounded-lg shadow-2xl w-full max-w-5xl my-8">

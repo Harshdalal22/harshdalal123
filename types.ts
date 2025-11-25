@@ -30,6 +30,8 @@ export interface DetailedCharges {
     riskCharge: number;
 }
 
+export type LRStatus = 'Booked' | 'In Transit' | 'Out for Delivery' | 'Delivered' | 'Cancelled';
+
 export interface LorryReceipt {
     lrType: 'Original' | 'Dummy';
     truckNo: string;
@@ -69,8 +71,13 @@ export interface LorryReceipt {
 
     remark: string;
 
+    status: LRStatus;
+    status_updated_at?: string;
+    pod_url?: string;
+
     // Added for list view consistency
     createdBy?: string;
+    user_id?: string;
 }
 
 export interface CompanyDetails {
@@ -79,10 +86,12 @@ export interface CompanyDetails {
     signatureImageUrl: string;
     tagline: string;
     address: string;
+
     email: string;
     web: string;
     contact: string[];
     pan: string;
     gstn: string;
     bankDetails: BankDetails;
+    user_id?: string;
 }

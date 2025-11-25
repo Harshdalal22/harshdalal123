@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import ReactDOM from 'react-dom';
-import { LorryReceipt, CompanyDetails } from '../types';
-import { PencilIcon, TrashIcon, DownloadIcon, SearchIcon, PrintIcon, FilterIcon, DotsVerticalIcon, DashboardIcon } from './icons';
+import { createPortal } from 'react-dom';
+import { LorryReceipt, CompanyDetails, LRStatus } from '../types';
+import { PencilIcon, TrashIcon, DownloadIcon, SearchIcon, PrintIcon, FilterIcon, DotsVerticalIcon, DashboardIcon, CheckCircleIcon, ClockIcon, TruckIcon, XIcon, UploadIcon, DocumentTextIcon } from './icons';
 import LRPreviewModal, { LRContent } from './LRPreviewModal';
 import InvoiceModal from './InvoiceModal';
 
@@ -12,9 +12,36 @@ interface LRListProps {
     onAddNew: () => void;
     companyDetails: CompanyDetails;
     onBackToDashboard: () => void;
+    onUpdateStatus: (lrNo: string, status: LRStatus) => void;
+    onOpenPODUploader: (lr: LorryReceipt) => void;
 }
 
-const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddNew, companyDetails, onBackToDashboard }) => {
+const statusColors: { [key in LRStatus]: string } = {
+    Booked: 'bg-blue-100 text-blue-800',
+    'In Transit': 'bg-yellow-100 text-yellow-800',
+    'Out for Delivery': 'bg-orange-100 text-orange-800',
+    Delivered: 'bg-green-100 text-green-800',
+    Cancelled: 'bg-red-100 text-red-800',
+};
+
+const StatusBadge: React.FC<{ status: LRStatus }> = ({ status }) => (
+    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${statusColors[status] || 'bg-gray-100 text-gray-800'}`}>
+        {status}
+    </span>
+);
+
+const PODStatusIcon: React.FC<{ lr: LorryReceipt }> = ({ lr }) => {
+    if (lr.pod_url) {
+        return <a href={lr.pod_url} target="_blank" rel="noopener noreferrer" title="View POD"><DocumentTextIcon className="w-5 h-5 text-green-600" /></a>;
+    }
+    if (lr.status === 'Delivered') {
+        return <span title="POD Pending"><UploadIcon className="w-5 h-5 text-orange-500" /></span>;
+    }
+    return <span className="text-gray-400 text-xs" title="N/A">-</span>;
+};
+
+
+const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddNew, companyDetails, onBackToDashboard, onUpdateStatus, onOpenPODUploader }) => {
     const [previewingLR, setPreviewingLR] = useState<LorryReceipt | null>(null);
     const [selectedLRs, setSelectedLRs] = useState<string[]>([]);
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
@@ -48,7 +75,8 @@ const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddN
             const matchesSearch = searchTerm === '' ||
                 lr.truckNo.toLowerCase().includes(lowerSearchTerm) ||
                 lr.consignor.name.toLowerCase().includes(lowerSearchTerm) ||
-                lr.consignee.name.toLowerCase().includes(lowerSearchTerm);
+                lr.consignee.name.toLowerCase().includes(lowerSearchTerm) ||
+                lr.status.toLowerCase().includes(lowerSearchTerm);
 
             const lrDate = new Date(lr.date);
             const fromDate = dateRange.from ? new Date(dateRange.from) : null;
@@ -152,191 +180,108 @@ const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddN
             {/* Filtering Toolbar */}
             <div className="mb-4 p-4 bg-gray-50/50 rounded-lg border">
                 <div className="flex flex-col md:flex-row gap-4 items-center">
-                    {/* Search always visible */}
-                    <div className="relative flex-grow w-full">
+                    <div className="relative flex-grow w-full md:w-auto">
                         <input
                             type="text"
-                            placeholder="Search by Truck No, Consignor, or Consignee..."
+                            placeholder="Search by Truck, Party, or Status..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full p-2 pl-10 border rounded-md shadow-inner"
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full p-2 pl-10 border rounded-lg focus:ring-2 focus:ring-ssk-blue"
                         />
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     </div>
-                    
-                    {/* Filter button for mobile */}
-                    <button onClick={() => setIsFilterOpen(!isFilterOpen)} className="md:hidden w-full flex items-center justify-center gap-2 bg-white text-gray-700 p-2 rounded-md shadow-sm border">
-                        <FilterIcon className="w-5 h-5"/>
-                        <span>Filters</span>
-                    </button>
-
-                    {/* Date range for desktop */}
-                    <div className="hidden md:flex items-center gap-2">
-                        <label>From:</label>
-                        <input type="date" value={dateRange.from} onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))} className="p-2 border rounded-md shadow-inner"/>
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium">From:</label>
+                        <input 
+                            type="date" 
+                            value={dateRange.from} 
+                            onChange={e => setDateRange(prev => ({...prev, from: e.target.value}))}
+                            className="p-2 border rounded-lg text-sm"
+                        />
                     </div>
-                     <div className="hidden md:flex items-center gap-2">
-                        <label>To:</label>
-                        <input type="date" value={dateRange.to} onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))} className="p-2 border rounded-md shadow-inner"/>
+                     <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium">To:</label>
+                        <input 
+                            type="date" 
+                            value={dateRange.to} 
+                            onChange={e => setDateRange(prev => ({...prev, to: e.target.value}))}
+                            className="p-2 border rounded-lg text-sm"
+                        />
                     </div>
-                    <button onClick={handleClearFilters} className="hidden md:block bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 shadow-sm border">
-                        Clear Filters
-                    </button>
+                    <button onClick={handleClearFilters} className="text-sm text-blue-600 hover:underline">Clear</button>
                 </div>
-                
-                {/* Collapsible section for mobile */}
-                {isFilterOpen && (
-                    <div className="md:hidden mt-4 pt-4 border-t space-y-4">
-                        <div className="flex items-center gap-2">
-                            <label className="w-10">From:</label>
-                            <input type="date" value={dateRange.from} onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))} className="p-2 border rounded-md shadow-inner w-full"/>
-                        </div>
-                         <div className="flex items-center gap-2">
-                            <label className="w-10">To:</label>
-                            <input type="date" value={dateRange.to} onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))} className="p-2 border rounded-md shadow-inner w-full"/>
-                        </div>
-                        <button onClick={handleClearFilters} className="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 shadow-sm border">
-                            Clear Filters
-                        </button>
-                    </div>
-                )}
             </div>
 
 
-            {/* Desktop Table View */}
-            <div className="overflow-x-auto hidden md:block">
-                <table className="w-full text-sm text-left text-gray-600">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-200/80">
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-gray-700">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-100/50">
                         <tr>
-                            <th scope="col" className="p-2">
-                                <input
-                                    type="checkbox"
-                                    className="h-4 w-4 text-ssk-blue focus:ring-ssk-blue border-gray-300 rounded"
-                                    onChange={handleSelectAll}
-                                    checked={filteredLRs.length > 0 && selectedLRs.length === filteredLRs.length}
-                                    />
+                            <th scope="col" className="p-4">
+                                <input type="checkbox" onChange={handleSelectAll} checked={selectedLRs.length > 0 && selectedLRs.length === filteredLRs.length} className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"/>
                             </th>
-                            <th scope="col" className="px-3 py-3">SR. NO</th>
-                            <th scope="col" className="px-3 py-3">LR. NO</th>
-                            <th scope="col" className="px-3 py-3">DATE</th>
-                            <th scope="col" className="px-3 py-3">TRUCK NO</th>
-                            <th scope="col" className="px-3 py-3">FROM</th>
-                            <th scope="col" className="px-3 py-3">TO</th>
-                            <th scope="col" className="px-3 py-3">CONSIGNOR</th>
-                            <th scope="col" className="px-3 py-3">CONSIGNEE</th>
-                            <th scope="col" className="px-3 py-3">WT.</th>
-                            <th scope="col" className="px-3 py-3">FREIGHT</th>
-                            <th scope="col" className="px-3 py-3">CREATED BY</th>
-                            <th scope="col" className="px-3 py-3 text-center">ACTION</th>
+                            <th scope="col" className="px-6 py-3">LR No.</th>
+                            <th scope="col" className="px-6 py-3">Date</th>
+                            <th scope="col" className="px-6 py-3">Truck No.</th>
+                            <th scope="col" className="px-6 py-3">Consignor</th>
+                            <th scope="col" className="px-6 py-3">Consignee</th>
+                            <th scope="col" className="px-6 py-3 text-right">Freight</th>
+                            <th scope="col" className="px-6 py-3 text-center">Status</th>
+                            <th scope="col" className="px-6 py-3 text-center">POD</th>
+                            <th scope="col" className="px-6 py-3 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredLRs.map((lr, index) => (
-                            <tr key={lr.lrNo} className="bg-white border-b hover:bg-gray-50 hover:shadow-md transition-all duration-200 hover:-translate-y-1">
-                                 <td className="p-2">
-                                     <input
-                                        type="checkbox"
-                                        className="h-4 w-4 text-ssk-blue focus:ring-ssk-blue border-gray-300 rounded"
-                                        checked={selectedLRs.includes(lr.lrNo)}
-                                        onChange={() => handleSelectLR(lr.lrNo)}
-                                    />
+                        {filteredLRs.map(lr => (
+                            <tr key={lr.lrNo} className="bg-white border-b hover:bg-gray-50">
+                                <td className="w-4 p-4">
+                                    <input type="checkbox" checked={selectedLRs.includes(lr.lrNo)} onChange={() => handleSelectLR(lr.lrNo)} className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" />
                                 </td>
-                                <td className="px-3 py-2">{index + 1}</td>
-                                <td className="px-3 py-2 font-medium text-blue-600">{lr.lrNo}</td>
-                                <td className="px-3 py-2">{new Date(lr.date).toLocaleDateString('en-GB')}</td>
-                                <td className="px-3 py-2">{lr.truckNo}</td>
-                                <td className="px-3 py-2">{lr.fromPlace}</td>
-                                <td className="px-3 py-2">{lr.toPlace}</td>
-                                <td className="px-3 py-2">{lr.consignor.name}</td>
-                                <td className="px-3 py-2">{lr.consignee.name}</td>
-                                <td className="px-3 py-2">{lr.weight}</td>
-                                <td className="px-3 py-2">{lr.freight.toLocaleString()}</td>
-                                <td className="px-3 py-2">{lr.createdBy}</td>
-                                <td className="px-3 py-2">
-                                    <div className="flex items-center justify-center space-x-1">
-                                        <button onClick={() => onEdit(lr.lrNo)} className="p-2 text-white bg-blue-600 hover:bg-blue-700 rounded" title="Edit"><PencilIcon className="w-4 h-4"/></button>
-                                        <button onClick={() => setPreviewingLR(lr)} className="p-2 text-white bg-blue-600 hover:bg-blue-700 rounded" title="Download/Print"><DownloadIcon className="w-4 h-4"/></button>
-                                        <button onClick={() => onDelete(lr.lrNo)} className="p-2 text-white bg-ssk-red hover:bg-red-700 rounded" title="Delete"><TrashIcon className="w-4 h-4"/></button>
-                                    </div>
+                                <td className="px-6 py-4 font-medium text-blue-600 whitespace-nowrap">{lr.lrNo}</td>
+                                <td className="px-6 py-4">{new Date(lr.date).toLocaleDateString('en-GB')}</td>
+                                <td className="px-6 py-4">{lr.truckNo}</td>
+                                <td className="px-6 py-4">{lr.consignor.name}</td>
+                                <td className="px-6 py-4">{lr.consignee.name}</td>
+                                <td className="px-6 py-4 text-right font-semibold">₹{Number(lr.freight).toLocaleString('en-IN')}</td>
+                                <td className="px-6 py-4 text-center"><StatusBadge status={lr.status} /></td>
+                                <td className="px-6 py-4 text-center flex justify-center"><PODStatusIcon lr={lr} /></td>
+                                <td className="px-6 py-4 text-center relative">
+                                    <button onClick={() => setOpenMenuLrNo(lr.lrNo === openMenuLrNo ? null : lr.lrNo)} className="p-2 hover:bg-gray-200 rounded-full">
+                                        <DotsVerticalIcon className="w-5 h-5"/>
+                                    </button>
+                                    {openMenuLrNo === lr.lrNo && (
+                                        <div ref={menuRef} className="absolute right-8 top-full mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
+                                            <div className="py-1">
+                                                <button onClick={() => { onEdit(lr.lrNo); setOpenMenuLrNo(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"><PencilIcon className="w-4 h-4 mr-2"/>Edit</button>
+                                                <button onClick={() => { setPreviewingLR(lr); setOpenMenuLrNo(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"><DownloadIcon className="w-4 h-4 mr-2"/>View/Download</button>
+                                                <div className="border-t my-1"></div>
+                                                <div className="px-4 pt-2 pb-1 text-xs font-semibold text-gray-500">Update Status</div>
+                                                <button onClick={() => { onUpdateStatus(lr.lrNo, 'In Transit'); setOpenMenuLrNo(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"><TruckIcon className="w-4 h-4 mr-2"/>In Transit</button>
+                                                <button onClick={() => { onUpdateStatus(lr.lrNo, 'Delivered'); setOpenMenuLrNo(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"><CheckCircleIcon className="w-4 h-4 mr-2"/>Delivered</button>
+                                                <button onClick={() => { onUpdateStatus(lr.lrNo, 'Cancelled'); setOpenMenuLrNo(null); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"><XIcon className="w-4 h-4 mr-2"/>Cancel</button>
+                                                <div className="border-t my-1"></div>
+                                                <button onClick={() => { onOpenPODUploader(lr); setOpenMenuLrNo(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"><UploadIcon className="w-4 h-4 mr-2"/>Upload POD</button>
+                                                <div className="border-t my-1"></div>
+                                                <button onClick={() => { onDelete(lr.lrNo); setOpenMenuLrNo(null); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"><TrashIcon className="w-4 h-4 mr-2"/>Delete</button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="md:hidden space-y-4">
-                {filteredLRs.map((lr) => (
-                    <div key={lr.lrNo} className="bg-white border rounded-lg p-4 space-y-3 shadow-sm hover:shadow-lg transition-shadow duration-200">
-                        <div className="flex justify-between items-start">
-                             <div>
-                                <p className="font-bold text-ssk-blue">{lr.lrNo}</p>
-                                <p className="text-xs text-gray-500">{new Date(lr.date).toLocaleDateString('en-GB')} | {lr.truckNo}</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                 <input
-                                    type="checkbox"
-                                    className="h-5 w-5 text-ssk-blue focus:ring-ssk-blue border-gray-300 rounded"
-                                    checked={selectedLRs.includes(lr.lrNo)}
-                                    onChange={() => handleSelectLR(lr.lrNo)}
-                                />
-                                 <div className="relative">
-                                    <button
-                                        onClick={() => setOpenMenuLrNo(openMenuLrNo === lr.lrNo ? null : lr.lrNo)}
-                                        className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"
-                                    >
-                                        <DotsVerticalIcon className="w-5 h-5" />
-                                    </button>
-                                    {openMenuLrNo === lr.lrNo && (
-                                        <div ref={menuRef} className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20 border">
-                                            <a onClick={() => { onEdit(lr.lrNo); setOpenMenuLrNo(null); }} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                                                <PencilIcon className="w-4 h-4" /> Edit LR
-                                            </a>
-                                            <a onClick={() => { setPreviewingLR(lr); setOpenMenuLrNo(null); }} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                                                <DownloadIcon className="w-4 h-4" /> View/Download
-                                            </a>
-                                            <a onClick={() => { onDelete(lr.lrNo); setOpenMenuLrNo(null); }} className="flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 cursor-pointer border-t">
-                                                <TrashIcon className="w-4 h-4" /> Delete
-                                            </a>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                            <div>
-                                <p className="text-xs text-gray-500">From</p>
-                                <p className="font-medium">{lr.fromPlace}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-500">To</p>
-                                <p className="font-medium">{lr.toPlace}</p>
-                            </div>
-                            <div className="col-span-2">
-                                <p className="text-xs text-gray-500">Consignor</p>
-                                <p className="font-medium">{lr.consignor.name}</p>
-                            </div>
-                             <div className="col-span-2">
-                                <p className="text-xs text-gray-500">Consignee</p>
-                                <p className="font-medium">{lr.consignee.name}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center justify-between pt-3 mt-2 border-t">
-                             <p className="text-sm font-medium text-gray-800">
-                                Freight: <span className="font-bold">₹{lr.freight.toLocaleString()}</span>
-                             </p>
-                             <p className="text-xs text-gray-500">
-                                 WT: {lr.weight}
-                             </p>
-                        </div>
+                 {filteredLRs.length === 0 && (
+                    <div className="text-center py-10 text-gray-500">
+                        <p className="font-semibold">No Lorry Receipts Found</p>
+                        <p className="text-sm mt-1">Try adjusting your search or filters.</p>
                     </div>
-                ))}
+                )}
             </div>
 
             {previewingLR && (
-                <LRPreviewModal
-                    isOpen={!!previewingLR}
+                <LRPreviewModal 
+                    isOpen={!!previewingLR} 
                     onClose={() => setPreviewingLR(null)}
                     lr={previewingLR}
                     companyDetails={companyDetails}
@@ -344,18 +289,18 @@ const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddN
                 />
             )}
             {isInvoiceModalOpen && (
-                <InvoiceModal
+                 <InvoiceModal
                     isOpen={isInvoiceModalOpen}
                     onClose={() => setIsInvoiceModalOpen(false)}
                     lorryReceipts={lrsForInvoice}
                     companyDetails={companyDetails}
                 />
             )}
-            {isPrinting && printRoot && ReactDOM.createPortal(
-                <div>
-                    {lrsToPrint.map((lr) => (
-                        <div key={lr.lrNo} className="page-break">
-                            <LRContent lr={lr} companyDetails={companyDetails} showCompanyDetails={true} />
+            {isPrinting && printRoot && createPortal(
+                <div className="printing-container">
+                    {lrsToPrint.map((lr, index) => (
+                        <div key={lr.lrNo} className={`page-break ${index === 0 ? 'first-page' : ''}`}>
+                             <LRContent lr={lr} companyDetails={companyDetails} showCompanyDetails={true} />
                         </div>
                     ))}
                 </div>,

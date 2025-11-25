@@ -1,43 +1,50 @@
 import React, { useState } from 'react';
 import { CompanyDetails } from '../types';
-import { CogIcon, XIcon } from './icons';
+import { CogIcon, XIcon, SpinnerIcon } from './icons';
 
 interface HeaderProps {
     companyDetails: CompanyDetails;
-    setCompanyDetails: (details: CompanyDetails) => Promise<boolean>;
+    onUpdateDetails: (details: CompanyDetails) => Promise<boolean>;
+    onUploadAsset: (file: File, assetType: 'logo' | 'signature') => Promise<string | null>;
+    userEmail?: string;
+    onSignOut?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ companyDetails, setCompanyDetails }) => {
+const Header: React.FC<HeaderProps> = ({ companyDetails, onUpdateDetails, onUploadAsset, userEmail, onSignOut }) => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [localDetails, setLocalDetails] = useState(companyDetails);
+    const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+    const [isUploadingSignature, setIsUploadingSignature] = useState(false);
+
 
     const handleSaveSettings = async () => {
-        const success = await setCompanyDetails(localDetails);
+        const success = await onUpdateDetails(localDetails);
         if (success) {
             setIsSettingsOpen(false);
         }
-        // If not successful, modal stays open for user to retry or check console.
     };
 
-    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setLocalDetails(prev => ({ ...prev, logoUrl: reader.result as string }));
-            };
-            reader.readAsDataURL(file);
+            setIsUploadingLogo(true);
+            const url = await onUploadAsset(file, 'logo');
+            if(url) {
+                setLocalDetails(prev => ({ ...prev, logoUrl: url }));
+            }
+            setIsUploadingLogo(false);
         }
     };
     
-    const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setLocalDetails(prev => ({ ...prev, signatureImageUrl: reader.result as string }));
-            };
-            reader.readAsDataURL(file);
+            setIsUploadingSignature(true);
+            const url = await onUploadAsset(file, 'signature');
+            if (url) {
+                setLocalDetails(prev => ({ ...prev, signatureImageUrl: url }));
+            }
+            setIsUploadingSignature(false);
         }
     };
 
@@ -51,16 +58,29 @@ const Header: React.FC<HeaderProps> = ({ companyDetails, setCompanyDetails }) =>
                     )}
                     <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight">{companyDetails.name}</h1>
                 </div>
-                <button 
-                    onClick={() => {
-                        setLocalDetails(companyDetails);
-                        setIsSettingsOpen(true);
-                    }}
-                    className="p-2 rounded-full hover:bg-white/20 transition-colors"
-                    aria-label="Open Settings"
-                >
-                    <CogIcon className="w-6 h-6" />
-                </button>
+                <div className="flex items-center gap-4">
+                    {userEmail && (
+                        <div className="hidden sm:flex items-center gap-4">
+                            <span className="text-sm font-medium">{userEmail}</span>
+                            <button 
+                                onClick={onSignOut}
+                                className="bg-ssk-red text-white px-3 py-1.5 rounded-md text-sm font-semibold hover:bg-red-700 transition-colors"
+                            >
+                                Sign Out
+                            </button>
+                        </div>
+                    )}
+                    <button 
+                        onClick={() => {
+                            setLocalDetails(companyDetails);
+                            setIsSettingsOpen(true);
+                        }}
+                        className="p-2 rounded-full hover:bg-white/20 transition-colors"
+                        aria-label="Open Settings"
+                    >
+                        <CogIcon className="w-6 h-6" />
+                    </button>
+                </div>
             </div>
             {isSettingsOpen && (
                 <div className="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
@@ -129,23 +149,27 @@ const Header: React.FC<HeaderProps> = ({ companyDetails, setCompanyDetails }) =>
                             </div>
 
                             <h3 className="text-lg font-semibold border-b mt-4 mb-2">Assets</h3>
-                            <div>
+                            <div className="flex items-center gap-4">
                                 <label className="block text-sm font-medium text-gray-700">Upload Logo</label>
-                                <input type="file" accept="image/*" onChange={handleLogoUpload} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-ssk-blue file:text-white hover:file:bg-ssk-blue/90" />
+                                {isUploadingLogo && <SpinnerIcon className="w-5 h-5 animate-spin text-ssk-blue" />}
                             </div>
+                            <input type="file" accept="image/*" onChange={handleLogoUpload} disabled={isUploadingLogo} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-ssk-blue file:text-white hover:file:bg-ssk-blue/90 disabled:file:bg-gray-400" />
+                            
                             {localDetails.logoUrl && (
                                 <div>
-                                    <span className="block text-sm font-medium text-gray-700">Logo Preview</span>
+                                    <span className="block text-sm font-medium text-gray-700 mt-2">Logo Preview</span>
                                     <img src={localDetails.logoUrl} alt="Logo Preview" className="mt-2 h-16 w-32 object-contain border p-1 rounded-md bg-gray-100" />
                                 </div>
                             )}
-                             <div>
+                             <div className="flex items-center gap-4 mt-4">
                                 <label className="block text-sm font-medium text-gray-700">Upload Signature</label>
-                                <input type="file" accept="image/*" onChange={handleSignatureUpload} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-ssk-blue file:text-white hover:file:bg-ssk-blue/90" />
+                                {isUploadingSignature && <SpinnerIcon className="w-5 h-5 animate-spin text-ssk-blue" />}
                             </div>
+                            <input type="file" accept="image/*" onChange={handleSignatureUpload} disabled={isUploadingSignature} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-ssk-blue file:text-white hover:file:bg-ssk-blue/90 disabled:file:bg-gray-400" />
+                            
                             {localDetails.signatureImageUrl && (
                                 <div>
-                                    <span className="block text-sm font-medium text-gray-700">Signature Preview</span>
+                                    <span className="block text-sm font-medium text-gray-700 mt-2">Signature Preview</span>
                                     <img src={localDetails.signatureImageUrl} alt="Signature Preview" className="mt-2 h-16 w-auto object-contain border p-1 rounded-md bg-gray-100" />
                                 </div>
                             )}

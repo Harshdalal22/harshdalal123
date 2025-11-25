@@ -1,6 +1,7 @@
 import React from 'react';
-import { LorryReceipt } from '../types';
-import { CurrencyRupeeIcon, TruckIcon, UsersIcon, ListIcon, CreateIcon, PencilIcon } from './icons';
+import { LorryReceipt, LRStatus } from '../types';
+// FIX: Imported missing XIcon.
+import { CurrencyRupeeIcon, TruckIcon, UsersIcon, ListIcon, CreateIcon, PencilIcon, CheckCircleIcon, ClockIcon, XIcon, UploadIcon } from './icons';
 
 interface DashboardProps {
     lorryReceipts: LorryReceipt[];
@@ -33,6 +34,13 @@ const Dashboard: React.FC<DashboardProps> = ({ lorryReceipts, onAddNew, onViewLi
     const totalFreight = lorryReceipts.reduce((sum, lr) => sum + (Number(lr.freight) || 0), 0);
     const uniqueConsignors = new Set(lorryReceipts.map(lr => lr.consignor.name.trim())).size;
     const recentLRs = lorryReceipts.slice(0, 5);
+    const podsPending = lorryReceipts.filter(lr => lr.status === 'Delivered' && !lr.pod_url).length;
+
+    const statusCounts = lorryReceipts.reduce((acc, lr) => {
+        acc[lr.status] = (acc[lr.status] || 0) + 1;
+        return acc;
+    }, {} as Record<LRStatus, number>);
+
 
     // --- Chart Data Calculation ---
     const today = new Date();
@@ -75,7 +83,7 @@ const Dashboard: React.FC<DashboardProps> = ({ lorryReceipts, onAddNew, onViewLi
             </div>
 
             {/* Stat Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatCard 
                     icon={<TruckIcon className="w-8 h-8 text-blue-500"/>} 
                     title="Total Lorry Receipts" 
@@ -94,8 +102,26 @@ const Dashboard: React.FC<DashboardProps> = ({ lorryReceipts, onAddNew, onViewLi
                     value={uniqueConsignors} 
                     color="border-purple-500"
                 />
+                <StatCard 
+                    icon={<UploadIcon className="w-8 h-8 text-orange-500"/>} 
+                    title="PODs Pending" 
+                    value={podsPending}
+                    color="border-orange-500"
+                />
             </div>
             
+            {/* New Status Overview */}
+            <div className="mb-8">
+                 <h2 className="text-xl font-bold text-gray-800 mb-4">Shipment Status Overview</h2>
+                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <StatCard icon={<TruckIcon className="w-8 h-8 text-yellow-500" />} title="In Transit" value={statusCounts['In Transit'] || 0} color="border-yellow-500" />
+                    <StatCard icon={<ClockIcon className="w-8 h-8 text-orange-500" />} title="Out for Delivery" value={statusCounts['Out for Delivery'] || 0} color="border-orange-500" />
+                    <StatCard icon={<CheckCircleIcon className="w-8 h-8 text-green-500" />} title="Delivered" value={statusCounts['Delivered'] || 0} color="border-green-500" />
+                    <StatCard icon={<CreateIcon className="w-8 h-8 text-blue-500" />} title="Booked" value={statusCounts['Booked'] || 0} color="border-blue-500" />
+                    <StatCard icon={<XIcon className="w-8 h-8 text-red-500" />} title="Cancelled" value={statusCounts['Cancelled'] || 0} color="border-red-500" />
+                 </div>
+            </div>
+
             {/* Recent Activity & Chart */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 bg-white/70 backdrop-blur-sm p-6 rounded-xl shadow-lg">
