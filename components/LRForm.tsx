@@ -20,7 +20,9 @@ const initialChargesState: DetailedCharges = {
     hamail: 0, surCharge: 0, stCharge: 0, collectionCharge: 0, ddCharge: 0, otherCharge: 0, riskCharge: 0
 };
 
-const initialLRState: Omit<LorryReceipt, 'lrNo'> = {
+// The C Note No (lrNo) is now a manual input, so it starts as an empty string.
+const initialLRState: LorryReceipt = {
+    lrNo: '',
     lrType: 'Original',
     truckNo: '',
     date: new Date().toISOString().split('T')[0],
@@ -51,20 +53,6 @@ const initialLRState: Omit<LorryReceipt, 'lrNo'> = {
     status: 'Booked',
 };
 
-const generateNewLrNo = (existingLrs: LorryReceipt[]): string => {
-    const hrLrNumbers = existingLrs
-        .filter(lr => lr.lrNo.startsWith('HR'))
-        .map(lr => parseInt(lr.lrNo.replace(/[^0-9]/g, ''), 10))
-        .filter(num => !isNaN(num));
-
-    if (hrLrNumbers.length === 0) {
-        return 'HR00001';
-    }
-
-    const maxLrNo = Math.max(...hrLrNumbers);
-    return `HR${String(maxLrNo + 1).padStart(5, '0')}`;
-};
-
 const Fieldset: React.FC<{ legend: string; children: React.ReactNode; className?: string }> = ({ legend, children, className = '' }) => (
     <fieldset className="border border-gray-300 p-4 rounded-xl mb-6 shadow-lg bg-white/50 backdrop-blur-sm">
         <legend className="px-2 font-bold text-base text-ssk-blue">{legend}</legend>
@@ -76,10 +64,7 @@ const Fieldset: React.FC<{ legend: string; children: React.ReactNode; className?
 
 
 const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDetails, lorryReceipts }) => {
-    const [formData, setFormData] = useState<LorryReceipt>(() => ({
-        ...initialLRState,
-        lrNo: existingLR ? existingLR.lrNo : generateNewLrNo(lorryReceipts),
-    }));
+    const [formData, setFormData] = useState<LorryReceipt>(initialLRState);
     const [billingPartyType, setBillingPartyType] = useState<'Consignor' | 'Consignee' | 'Other'>('Consignor');
     const [showPreviewModal, setShowPreviewModal] = useState(false);
     const [isAiLoading, setIsAiLoading] = useState(false);
@@ -96,14 +81,10 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
                 setBillingPartyType('Other');
             }
         } else {
-            const newLrNo = generateNewLrNo(lorryReceipts);
-            setFormData({
-                ...initialLRState,
-                lrNo: newLrNo,
-            });
+            setFormData(initialLRState);
              setBillingPartyType('Consignor');
         }
-    }, [existingLR, lorryReceipts]);
+    }, [existingLR]);
     
     useEffect(() => {
         if (billingPartyType === 'Consignor') {
@@ -170,7 +151,8 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.truckNo || !formData.fromPlace || !formData.toPlace || !formData.consignor.name || !formData.consignee.name) {
+        // C Note No (lrNo) is now a required manual field
+        if (!formData.lrNo || !formData.truckNo || !formData.fromPlace || !formData.toPlace || !formData.consignor.name || !formData.consignee.name) {
             toast.error('Please fill all required fields marked with *.');
             return;
         }
@@ -179,11 +161,7 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
 
     const handleCreateNew = () => {
         if(window.confirm('Are you sure you want to discard current changes and create a new LR?')) {
-            const newLrNo = generateNewLrNo(lorryReceipts);
-            setFormData({
-                ...initialLRState,
-                lrNo: newLrNo,
-            });
+            setFormData(initialLRState);
             setBillingPartyType('Consignor');
         }
     }
@@ -295,7 +273,19 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
                             </div>
                         </div>
                         <div><label className={labelClass}>TRUCK NO*</label><input type="text" name="truckNo" placeholder="TRUCK NO" value={formData.truckNo} onChange={handleChange} className={`${inputClass} border-red-300`} required /></div>
-                        <div><label className={labelClass}>C Note NO*</label><input type="text" value={formData.lrNo} disabled className={`${inputClass} bg-gray-200 cursor-not-allowed`} /></div>
+                        <div>
+                            <label className={labelClass}>C Note NO*</label>
+                            <input 
+                                type="text"
+                                name="lrNo"
+                                placeholder="Enter C Note No."
+                                value={formData.lrNo}
+                                onChange={handleChange}
+                                className={`${inputClass} border-red-300`}
+                                required
+                                disabled={!!existingLR} // Disable for editing existing LR
+                            />
+                        </div>
                         <div><label className={labelClass}>DATE*</label><input type="date" name="date" value={formData.date} onChange={handleChange} className={inputClass} required /></div>
                         <div><label className={labelClass}>FROM PLACE*</label><input type="text" name="fromPlace" placeholder="FROM PLACE" value={formData.fromPlace} onChange={handleChange} className={inputClass} required /></div>
                         <div><label className={labelClass}>TO PLACE*</label><input type="text" name="toPlace" placeholder="TO PLACE" value={formData.toPlace} onChange={handleChange} className={inputClass} required /></div>
