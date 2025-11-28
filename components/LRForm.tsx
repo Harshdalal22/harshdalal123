@@ -20,7 +20,6 @@ const initialChargesState: DetailedCharges = {
     hamail: 0, surCharge: 0, stCharge: 0, collectionCharge: 0, ddCharge: 0, otherCharge: 0, riskCharge: 0
 };
 
-// FIX: Added missing 'status' property required by the LorryReceipt type.
 const initialLRState: Omit<LorryReceipt, 'lrNo'> = {
     lrType: 'Original',
     truckNo: '',
@@ -251,8 +250,8 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
         );
     }
     
-    // FIX: Cast charge to number before adding, as Object.values can return unknown type.
-    const totalCharges = Object.values(formData.charges).reduce((sum, charge) => sum + (Number(charge) || 0), 0);
+    // FIX: Explicitly type reduce callback parameters to fix 'unknown' type error.
+    const totalCharges = Object.values(formData.charges).reduce((sum: number, charge: unknown) => sum + (Number(charge) || 0), 0);
     const inputClass = "w-full p-2 border-gray-300 bg-white rounded-md text-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-ssk-blue focus:border-transparent transition-all duration-200";
     const labelClass = "block text-xs font-bold text-gray-600 uppercase mb-1";
 
@@ -306,12 +305,12 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
                     <Fieldset legend="Shipment Details" className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4">
                          <div><label className={labelClass}>INVOICE</label><input type="text" name="invoiceNo" placeholder="INVOICE" value={formData.invoiceNo} onChange={handleChange} className={inputClass} /></div>
                         <div><label className={labelClass}>INVOICE AMOUNT</label><input type="number" name="invoiceAmount" placeholder="INVOICE AMOUNT" value={formData.invoiceAmount} onChange={handleChange} className={inputClass} /></div>
-                        <div><label className={labelClass}>INVOICE DATE</label><input type="date" name="invoiceDate" value={formData.invoiceDate} onChange={handleChange} className={inputClass} /></div>
+                        <div><label className={labelClass}>INVOICE DATE</label><input type="date" name="invoiceDate" value={formData.invoiceDate || ''} onChange={handleChange} className={inputClass} /></div>
                         <div><label className={labelClass}>EWAY BILL NO</label><input type="text" name="ewayBillNo" placeholder="EWAY BILL NO" value={formData.ewayBillNo} onChange={handleChange} className={inputClass} /></div>
-                        <div><label className={labelClass}>EWAY BILL DATE</label><input type="date" name="ewayBillDate" value={formData.ewayBillDate} onChange={handleChange} className={inputClass} /></div>
-                        <div><label className={labelClass}>EWAY EX. DATE</label><input type="date" name="ewayExDate" value={formData.ewayExDate} onChange={handleChange} className={inputClass} /></div>
+                        <div><label className={labelClass}>EWAY BILL DATE</label><input type="date" name="ewayBillDate" value={formData.ewayBillDate || ''} onChange={handleChange} className={inputClass} /></div>
+                        <div><label className={labelClass}>EWAY EX. DATE</label><input type="date" name="ewayExDate" value={formData.ewayExDate || ''} onChange={handleChange} className={inputClass} /></div>
                         <div><label className={labelClass}>P.O. NO</label><input type="text" name="poNo" placeholder="P.O. NO" value={formData.poNo} onChange={handleChange} className={inputClass} /></div>
-                        <div><label className={labelClass}>P.O. DATE</label><input type="date" name="poDate" value={formData.poDate} onChange={handleChange} className={inputClass} /></div>
+                        <div><label className={labelClass}>P.O. DATE</label><input type="date" name="poDate" value={formData.poDate || ''} onChange={handleChange} className={inputClass} /></div>
                         <div><label className={labelClass}>ADDRESS OF DELIVERY</label><input type="text" name="addressOfDelivery" placeholder="ADDRESS OF DELIVERY" value={formData.addressOfDelivery} onChange={handleChange} className={inputClass} /></div>
                     </Fieldset>
                     
@@ -416,7 +415,6 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
                         </div>
                         <div>
                             <label className={labelClass}>GRAND TOTAL</label>
-                            {/* FIX: Cast formData.freight to number before addition to prevent type errors. */}
                             <input type="number" value={(Number(formData.freight) || 0) + totalCharges} readOnly className={`${inputClass} bg-green-100 border-green-300 font-bold cursor-not-allowed`} />
                         </div>
                     </Fieldset>

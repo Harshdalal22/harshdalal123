@@ -14,8 +14,8 @@ declare const html2pdf: any;
 
 const InvoiceContent = forwardRef<HTMLDivElement, { lorryReceipts: LorryReceipt[], companyDetails: CompanyDetails }>(({ lorryReceipts, companyDetails }, ref) => {
     const totalAmount = lorryReceipts.reduce((sum, lr) => {
-        // FIX: Cast charge to number before adding, as Object.values can return unknown type.
-        const totalCharges = Object.values(lr.charges || {}).reduce((chargeSum, charge) => chargeSum + (Number(charge) || 0), 0);
+        // FIX: Explicitly type reduce callback parameters to fix 'unknown' type error.
+        const totalCharges = Object.values(lr.charges || {}).reduce((chargeSum: number, charge: unknown) => chargeSum + (Number(charge) || 0), 0);
         return sum + (Number(lr.freight) || 0) + totalCharges;
     }, 0);
     const totalCgst = totalAmount * 0.025; // Calculate CGST on the total amount
@@ -88,8 +88,8 @@ const InvoiceContent = forwardRef<HTMLDivElement, { lorryReceipts: LorryReceipt[
                 </thead>
                 <tbody>
                     {lorryReceipts.map((lr, index) => {
-                        // FIX: Cast charge to number before adding, as Object.values can return unknown type.
-                        const totalCharges = Object.values(lr.charges || {}).reduce((chargeSum, charge) => chargeSum + (Number(charge) || 0), 0);
+                        // FIX: Explicitly type reduce callback parameters to fix 'unknown' type error.
+                        const totalCharges = Object.values(lr.charges || {}).reduce((chargeSum: number, charge: unknown) => chargeSum + (Number(charge) || 0), 0);
                         return (
                             <tr key={lr.lrNo} style={{ height: '24px' }}>
                                 <td className="border-2 border-black p-1 text-center">{index + 1}</td>
@@ -98,7 +98,6 @@ const InvoiceContent = forwardRef<HTMLDivElement, { lorryReceipts: LorryReceipt[
                                 <td className="border-2 border-black p-1 text-center">{lr.lrNo}</td>
                                 <td className="border-2 border-black p-1">{lr.fromPlace}</td>
                                 <td className="border-2 border-black p-1">{lr.toPlace}</td>
-                                {/* FIX: Cast lr.freight to Number to use .toFixed() and perform addition, preventing type errors. */}
                                 <td className="border-2 border-black p-1 text-right">{Number(lr.freight).toFixed(2)}</td>
                                 <td className="border-2 border-black p-1 text-right">{totalCharges.toFixed(2)}</td>
                                 <td className="border-2 border-black p-1 text-right">{(Number(lr.freight) + totalCharges).toFixed(2)}</td>

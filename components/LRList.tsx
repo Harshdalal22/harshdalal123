@@ -14,6 +14,7 @@ interface LRListProps {
     onBackToDashboard: () => void;
     onUpdateStatus: (lrNo: string, status: LRStatus) => void;
     onOpenPODUploader: (lr: LorryReceipt) => void;
+    onViewPOD: (podPath: string) => void;
 }
 
 const statusColors: { [key in LRStatus]: string } = {
@@ -30,9 +31,13 @@ const StatusBadge: React.FC<{ status: LRStatus }> = ({ status }) => (
     </span>
 );
 
-const PODStatusIcon: React.FC<{ lr: LorryReceipt }> = ({ lr }) => {
-    if (lr.pod_url) {
-        return <a href={lr.pod_url} target="_blank" rel="noopener noreferrer" title="View POD"><DocumentTextIcon className="w-5 h-5 text-green-600" /></a>;
+const PODStatusIcon: React.FC<{ lr: LorryReceipt; onViewPOD: (podPath: string) => void }> = ({ lr, onViewPOD }) => {
+    if (lr.pod_path) {
+        return (
+            <button onClick={() => onViewPOD(lr.pod_path!)} title="View POD" className="p-1 hover:bg-green-100 rounded-full">
+                <DocumentTextIcon className="w-5 h-5 text-green-600" />
+            </button>
+        );
     }
     if (lr.status === 'Delivered') {
         return <span title="POD Pending"><UploadIcon className="w-5 h-5 text-orange-500" /></span>;
@@ -41,7 +46,7 @@ const PODStatusIcon: React.FC<{ lr: LorryReceipt }> = ({ lr }) => {
 };
 
 
-const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddNew, companyDetails, onBackToDashboard, onUpdateStatus, onOpenPODUploader }) => {
+const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddNew, companyDetails, onBackToDashboard, onUpdateStatus, onOpenPODUploader, onViewPOD }) => {
     const [previewingLR, setPreviewingLR] = useState<LorryReceipt | null>(null);
     const [selectedLRs, setSelectedLRs] = useState<string[]>([]);
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
@@ -244,7 +249,7 @@ const LRList: React.FC<LRListProps> = ({ lorryReceipts, onEdit, onDelete, onAddN
                                 <td className="px-6 py-4">{lr.consignee.name}</td>
                                 <td className="px-6 py-4 text-right font-semibold">₹{Number(lr.freight).toLocaleString('en-IN')}</td>
                                 <td className="px-6 py-4 text-center"><StatusBadge status={lr.status} /></td>
-                                <td className="px-6 py-4 text-center flex justify-center"><PODStatusIcon lr={lr} /></td>
+                                <td className="px-6 py-4 text-center flex justify-center"><PODStatusIcon lr={lr} onViewPOD={onViewPOD} /></td>
                                 <td className="px-6 py-4 text-center relative">
                                     <button onClick={() => setOpenMenuLrNo(lr.lrNo === openMenuLrNo ? null : lr.lrNo)} className="p-2 hover:bg-gray-200 rounded-full">
                                         <DotsVerticalIcon className="w-5 h-5"/>

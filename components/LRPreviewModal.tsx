@@ -17,9 +17,9 @@ declare const html2pdf: any;
 
 // A dedicated component for the LR content to be reused for screen and print.
 export const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyDetails: CompanyDetails; showCompanyDetails: boolean }>(({ lr, companyDetails, showCompanyDetails }, ref) => {
-    // FIX: Cast charge to number before adding, as Object.values can return unknown type.
-    const totalCharges = Object.values(lr.charges || {}).reduce((sum, charge) => sum + (Number(charge) || 0), 0);
-    const totalToPay = (lr.freight || 0) + totalCharges;
+    // FIX: Explicitly type reduce callback parameters to fix 'unknown' type error.
+    const totalCharges = Object.values(lr.charges || {}).reduce((sum: number, charge: unknown) => sum + (Number(charge) || 0), 0);
+    const totalToPay = (Number(lr.freight) || 0) + totalCharges;
 
     return (
         <div ref={ref} className="printable-area p-2 bg-white text-black font-sans w-[710px] lg:w-full mx-auto border-2 border-black">
@@ -182,18 +182,18 @@ export const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyD
                         <td className="border-t-2 border-r-2 border-black p-1 text-center align-top font-bold text-black">{lr.chargedWeight}</td>
                         <td className="border-t-2 border-r-2 border-black p-0 align-top bg-blue-50">
                             <div className="grid grid-cols-2 h-full text-center">
-                                {/* FIX: Cast charge values to Number to allow comparison and formatting, preventing type errors. */}
-                                <div className="border-b border-r border-black p-1">Hamail</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number(lr.charges.hamail) > 0 ? Number(lr.charges.hamail).toFixed(2) : ''}</div>
-                                <div className="border-b border-r border-black p-1">Sur.CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number(lr.charges.surCharge) > 0 ? Number(lr.charges.surCharge).toFixed(2) : ''}</div>
-                                <div className="border-b border-r border-black p-1">St.CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number(lr.charges.stCharge) > 0 ? Number(lr.charges.stCharge).toFixed(2) : ''}</div>
-                                <div className="border-b border-r border-black p-1">Collection CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number(lr.charges.collectionCharge) > 0 ? Number(lr.charges.collectionCharge).toFixed(2) : ''}</div>
-                                <div className="border-b border-r border-black p-1">D.Dty CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number(lr.charges.ddCharge) > 0 ? Number(lr.charges.ddCharge).toFixed(2) : ''}</div>
-                                <div className="border-b border-r border-black p-1">Other CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number(lr.charges.otherCharge) > 0 ? Number(lr.charges.otherCharge).toFixed(2) : ''}</div>
-                                <div className="border-b border-r border-black p-1">Risk CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number(lr.charges.riskCharge) > 0 ? Number(lr.charges.riskCharge).toFixed(2) : ''}</div>
+                                {/* FIX: Cast charge properties to any then convert to Number to fix 'unknown' type error. */}
+                                <div className="border-b border-r border-black p-1">Hamail</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number((lr.charges as any).hamail) > 0 ? Number((lr.charges as any).hamail).toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">Sur.CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number((lr.charges as any).surCharge) > 0 ? Number((lr.charges as any).surCharge).toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">St.CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number((lr.charges as any).stCharge) > 0 ? Number((lr.charges as any).stCharge).toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">Collection CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number((lr.charges as any).collectionCharge) > 0 ? Number((lr.charges as any).collectionCharge).toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">D.Dty CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number((lr.charges as any).ddCharge) > 0 ? Number((lr.charges as any).ddCharge).toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">Other CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number((lr.charges as any).otherCharge) > 0 ? Number((lr.charges as any).otherCharge).toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">Risk CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && Number((lr.charges as any).riskCharge) > 0 ? Number((lr.charges as any).riskCharge).toFixed(2) : ''}</div>
                                 <div className="border-r border-black p-1 font-bold">Total</div><div className="p-1 font-bold text-black">{totalCharges > 0 ? totalCharges.toFixed(2) : ''}</div>
                             </div>
                         </td>
-                        <td className="border-t-2 border-r-2 border-black p-1 align-top text-center font-bold text-black">{lr.freight.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td className="border-t-2 border-r-2 border-black p-1 align-top text-center font-bold text-black">{Number(lr.freight).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td className="border-t-2 border-black p-1 align-top">
                             
                         </td>
@@ -220,7 +220,7 @@ export const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyD
                                 <div>
                                     <p>Endorsement Its Is Intended To use Consignee Copy Of the Set For The Purpose Of Borrowing From The Consignee Bank</p>
                                     <p className="my-2">The Court In Delhi Alone Shall Have Jurisdiction In Respect Of The Claims And Matters Arising Under The Consignment Or Of The Claims And Matter Arising Under The Goods Entrusted For Transport</p>
-                                    <p className="mt-2 text-[9px]">Value : <span className="font-bold text-black">{lr.invoiceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></p>
+                                    <p className="mt-2 text-[9px]">Value : <span className="font-bold text-black">{Number(lr.invoiceAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></p>
                                      <div className="grid grid-cols-2 text-[9px] mt-1">
                                         {lr.gstPaidBy && <p>GST Paid By: <span className="font-bold text-black">{lr.gstPaidBy}</span></p>}
                                         
@@ -318,7 +318,7 @@ const LRPreviewModal: React.FC<LRPreviewModalProps> = ({ isOpen, onClose, lr, co
     if (!isOpen) return null;
     
     return (
-        <div className="fixed inset-0 bg-black/70 z-50 flex justify-center items-start p-2 sm-p-4 overflow-auto">
+        <div className="fixed inset-0 bg-black/70 z-50 flex justify-center items-start p-2 sm:p-4 overflow-auto">
             {/* Render a copy of the content specifically for printing, outside the visible modal */}
             {printRoot && createPortal(<LRContent lr={lr} companyDetails={companyDetails} showCompanyDetails={showCompanyDetails} />, printRoot)}
 

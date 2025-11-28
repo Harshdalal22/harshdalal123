@@ -42,13 +42,13 @@ export interface LorryReceipt {
 
     invoiceNo: string;
     invoiceAmount: number;
-    invoiceDate: string;
+    invoiceDate: string | null;
     poNo: string;
-    poDate: string;
+    poDate: string | null;
 
     ewayBillNo: string;
-    ewayBillDate: string;
-    ewayExDate: string;
+    ewayBillDate: string | null;
+    ewayExDate: string | null;
     
     addressOfDelivery: string;
     chargedWeight: number;
@@ -73,7 +73,7 @@ export interface LorryReceipt {
 
     status: LRStatus;
     status_updated_at?: string;
-    pod_url?: string;
+    pod_path?: string;
 
     // Added for list view consistency
     createdBy?: string;

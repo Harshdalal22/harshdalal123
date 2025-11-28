@@ -18,7 +18,9 @@ import {
     getSession,
     updateLorryReceiptStatus,
     uploadPOD,
-    uploadCompanyAsset
+    uploadCompanyAsset,
+    getPodSignedUrl,
+    deletePOD
 } from './services/supabaseService';
 import { Session, Subscription } from '@supabase/supabase-js';
 
@@ -153,24 +155,41 @@ const App: React.FC = () => {
 
     const handleSaveLR = async (lr: LorryReceipt) => {
         const toastId = toast.loading(editingLR ? 'Updating LR...' : 'Saving LR...');
-        try {
-            const isNew = !editingLR;
-            const lrToSave = {
-                ...lr,
-                invoiceDate: lr.invoiceDate || null,
-                poDate: lr.poDate || null,
-                ewayBillDate: lr.ewayBillDate || null,
-                ewayExDate: lr.ewayExDate || null,
-                status: isNew ? 'Booked' : lr.status,
-            };
+        
+        // Comprehensive data sanitization
+        const sanitizedLR = {
+            ...lr,
+            invoiceDate: lr.invoiceDate || null,
+            poDate: lr.poDate || null,
+            ewayBillDate: lr.ewayBillDate || null,
+            ewayExDate: lr.ewayExDate || null,
+            status: editingLR ? lr.status : 'Booked',
+            // Ensure numeric fields are numbers, defaulting to 0 if null/undefined/NaN
+            invoiceAmount: Number(lr.invoiceAmount) || 0,
+            chargedWeight: Number(lr.chargedWeight) || 0,
+            weight: Number(lr.weight) || 0,
+            actualWeightMT: Number(lr.actualWeightMT) || 0,
+            freight: Number(lr.freight) || 0,
+            rate: Number(lr.rate) || 0,
+            charges: Object.entries(lr.charges).reduce((acc, [key, value]) => {
+                acc[key as keyof typeof lr.charges] = Number(value) || 0;
+                return acc;
+            }, {} as typeof lr.charges),
+            items: lr.items.map(item => ({
+                ...item,
+                pcs: Number(item.pcs) || 0,
+                weight: Number(item.weight) || 0,
+            })),
+        };
 
-            const savedLr = await saveLorryReceipt(lrToSave);
-            if (isNew) {
-                setLorryReceipts([savedLr, ...lorryReceipts]);
-                toast.success('LR generated successfully!', { id: toastId });
-            } else {
+        try {
+            const savedLr = await saveLorryReceipt(sanitizedLR);
+            if (editingLR) {
                 setLorryReceipts(lorryReceipts.map(r => r.lrNo === savedLr.lrNo ? savedLr : r));
                 toast.success('LR updated successfully!', { id: toastId });
+            } else {
+                setLorryReceipts([savedLr, ...lorryReceipts]);
+                toast.success('LR generated successfully!', { id: toastId });
             }
             setEditingLR(null);
             setCurrentView('list');
@@ -212,6 +231,18 @@ const App: React.FC = () => {
         }
     };
     
+    const handleViewPOD = async (podPath: string) => {
+        const toastId = toast.loading('Generating secure link...');
+        try {
+            const signedUrl = await getPodSignedUrl(podPath);
+            window.open(signedUrl, '_blank');
+            toast.dismiss(toastId);
+        } catch (error) {
+            toast.dismiss(toastId);
+            handleError(error, "Failed to view POD");
+        }
+    };
+
     const handleUploadCompanyAsset = async (file: File, assetType: 'logo' | 'signature'): Promise<string | null> => {
         const toastId = toast.loading(`Uploading ${assetType}...`);
         try {
@@ -249,9 +280,17 @@ const App: React.FC = () => {
     };
 
     const handleDeleteLR = async (lrNo: string) => {
+        const lrToDelete = lorryReceipts.find(lr => lr.lrNo === lrNo);
+        if (!lrToDelete) return;
+
         if (window.confirm('Are you sure you want to delete this LR? This action cannot be undone.')) {
             const toastId = toast.loading('Deleting LR...');
             try {
+                // First delete associated POD file, if it exists
+                if (lrToDelete.pod_path) {
+                    await deletePOD(lrToDelete.pod_path);
+                }
+                // Then delete the LR record
                 await deleteLorryReceipt(lrNo);
                 setLorryReceipts(lorryReceipts.filter(lr => lr.lrNo !== lrNo));
                 toast.success('LR deleted successfully!', { id: toastId });
@@ -314,6 +353,7 @@ const App: React.FC = () => {
                         onBackToDashboard={handleBackToDashboard}
                         onUpdateStatus={handleUpdateLRStatus}
                         onOpenPODUploader={(lr) => setUploadingPODFor(lr)}
+                        onViewPOD={handleViewPOD}
                     />
                 );
             case 'form':
@@ -336,7 +376,7 @@ const App: React.FC = () => {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-gray-200">
                 <div className="text-center">
-                    <svg className="animate-spin h-10 w-10 text-ssk-blue mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-10 w-10 text-ssk-blue mx-auto" xmlns="http://www.w.3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>

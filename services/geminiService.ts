@@ -66,9 +66,8 @@ export const suggestLRDetails = async (
             Return your suggestions as a JSON object adhering to the provided schema. Only include fields for which you have a confident suggestion. Do not suggest values for fields that are already filled in the new LR.
         `;
 
-        // FIX: Replaced `prompt` with `contents` and updated model name per Gemini API guidelines.
         const response = await client.models.generateContent({
-            // FIX: Updated model name to a valid, non-deprecated version as per Gemini API guidelines. The model 'gemini-1.5-flash' is deprecated.
+            // FIX: Updated model name to a valid, non-deprecated version as per Gemini API guidelines.
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {

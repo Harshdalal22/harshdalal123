@@ -1,6 +1,5 @@
 import React from 'react';
 import { LorryReceipt, LRStatus } from '../types';
-// FIX: Imported missing XIcon.
 import { CurrencyRupeeIcon, TruckIcon, UsersIcon, ListIcon, CreateIcon, PencilIcon, CheckCircleIcon, ClockIcon, XIcon, UploadIcon } from './icons';
 
 interface DashboardProps {
@@ -34,7 +33,7 @@ const Dashboard: React.FC<DashboardProps> = ({ lorryReceipts, onAddNew, onViewLi
     const totalFreight = lorryReceipts.reduce((sum, lr) => sum + (Number(lr.freight) || 0), 0);
     const uniqueConsignors = new Set(lorryReceipts.map(lr => lr.consignor.name.trim())).size;
     const recentLRs = lorryReceipts.slice(0, 5);
-    const podsPending = lorryReceipts.filter(lr => lr.status === 'Delivered' && !lr.pod_url).length;
+    const podsPending = lorryReceipts.filter(lr => lr.status === 'Delivered' && !lr.pod_path).length;
 
     const statusCounts = lorryReceipts.reduce((acc, lr) => {
         acc[lr.status] = (acc[lr.status] || 0) + 1;
