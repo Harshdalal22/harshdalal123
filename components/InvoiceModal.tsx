@@ -1,4 +1,4 @@
-import React, { useRef, forwardRef } from 'react';
+import React, { useRef, forwardRef, useState, useEffect } from 'react';
 import { LorryReceipt, CompanyDetails, PartyDetails } from '../types';
 import { DownloadIcon, XIcon } from './icons';
 import { toWords } from '../utils/numberToWords';
@@ -12,10 +12,10 @@ interface InvoiceModalProps {
 
 declare const html2pdf: any;
 
-const InvoiceContent = forwardRef<HTMLDivElement, { lorryReceipts: LorryReceipt[], companyDetails: CompanyDetails }>(({ lorryReceipts, companyDetails }, ref) => {
+const InvoiceContent = forwardRef<HTMLDivElement, { lorryReceipts: LorryReceipt[], companyDetails: CompanyDetails, billNo: string, billDate: string }>(({ lorryReceipts, companyDetails, billNo, billDate }, ref) => {
     const totalAmount = lorryReceipts.reduce((sum, lr) => {
-        // FIX: Explicitly type reduce callback parameters to fix 'unknown' type error.
-        const totalCharges = Object.values(lr.charges || {}).reduce((chargeSum: number, charge: unknown) => chargeSum + (Number(charge) || 0), 0);
+        // FIX: Explicitly typed the `reduce` callback parameters and cast the `Object.values` result to `number[]` to resolve a TypeScript error where the `charge` variable was being inferred as `unknown`, preventing arithmetic operations.
+        const totalCharges = (Object.values(lr.charges || {}) as number[]).reduce((chargeSum: number, charge: number) => chargeSum + (charge || 0), 0);
         return sum + (Number(lr.freight) || 0) + totalCharges;
     }, 0);
     const totalCgst = totalAmount * 0.025; // Calculate CGST on the total amount
@@ -26,8 +26,7 @@ const InvoiceContent = forwardRef<HTMLDivElement, { lorryReceipts: LorryReceipt[
 
     const billedTo: Partial<PartyDetails> = lorryReceipts.length > 0 ? (lorryReceipts[0].billingTo?.name ? lorryReceipts[0].billingTo : lorryReceipts[0].consignor) : { name: 'N/A', address: 'N/A', gst: 'N/A' };
     
-    const billNo = `000${(lorryReceipts.map(lr => lr.lrNo).join('').length % 90) + 1}`.slice(-4);
-    const billDate = new Date().toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: 'numeric'});
+    const formattedBillDate = billDate ? new Date(billDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
 
 
     return (
@@ -66,7 +65,7 @@ const InvoiceContent = forwardRef<HTMLDivElement, { lorryReceipts: LorryReceipt[
                 </div>
                 <div className="w-1/3 text-left pl-10">
                     <p className="font-bold">BILL NO. : {billNo}</p>
-                    <p className="font-bold">DATE : {billDate}</p>
+                    <p className="font-bold">DATE : {formattedBillDate}</p>
                 </div>
             </div>
             <p className="font-bold text-black mt-2">GST :- {billedTo.gst}</p>
@@ -88,8 +87,8 @@ const InvoiceContent = forwardRef<HTMLDivElement, { lorryReceipts: LorryReceipt[
                 </thead>
                 <tbody>
                     {lorryReceipts.map((lr, index) => {
-                        // FIX: Explicitly type reduce callback parameters to fix 'unknown' type error.
-                        const totalCharges = Object.values(lr.charges || {}).reduce((chargeSum: number, charge: unknown) => chargeSum + (Number(charge) || 0), 0);
+                        // FIX: Explicitly typed the `reduce` callback parameters and cast the `Object.values` result to `number[]` to resolve a TypeScript error where the `charge` variable was being inferred as `unknown`, preventing arithmetic operations.
+                        const totalCharges = (Object.values(lr.charges || {}) as number[]).reduce((chargeSum: number, charge: number) => chargeSum + (charge || 0), 0);
                         return (
                             <tr key={lr.lrNo} style={{ height: '24px' }}>
                                 <td className="border-2 border-black p-1 text-center">{index + 1}</td>
@@ -177,6 +176,18 @@ const InvoiceContent = forwardRef<HTMLDivElement, { lorryReceipts: LorryReceipt[
 
 const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, lorryReceipts, companyDetails }) => {
     const previewRef = useRef<HTMLDivElement>(null);
+    const [billNo, setBillNo] = useState('');
+    const [billDate, setBillDate] = useState(new Date().toISOString().split('T')[0]);
+
+    useEffect(() => {
+        if (isOpen && lorryReceipts.length > 0) {
+            const suggestedBillNo = `INV-${new Date().getFullYear()}-${String(lorryReceipts.length).padStart(4, '0')}`;
+            setBillNo(suggestedBillNo);
+            setBillDate(new Date().toISOString().split('T')[0]);
+        }
+    }, [isOpen, lorryReceipts]);
+
+
     if (!isOpen) return null;
 
     const handleDownloadPDF = () => {
@@ -187,7 +198,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, lorryRecei
         
         const opt = {
             margin:       10, // 10mm margin on all sides
-            filename:     `Bill-${billedTo.name?.split(' ')[0]}-${new Date().toISOString().split('T')[0]}.pdf`,
+            filename:     `Bill-${billNo}-${billedTo.name?.split(' ')[0]}.pdf`,
             image:        { type: 'jpeg', quality: 1.0 },
             html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -199,8 +210,28 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, lorryRecei
     return (
         <div className="fixed inset-0 bg-black/70 z-50 flex justify-center items-start p-2 sm:p-4 overflow-auto">
             <div className="bg-white rounded-lg shadow-2xl w-full max-w-5xl my-8">
-                <div className="p-4 bg-gray-100 rounded-t-lg flex flex-wrap justify-between items-center gap-2 sticky top-0 z-10">
+                <div className="p-4 bg-gray-100 rounded-t-lg flex flex-wrap justify-between items-center gap-4 sticky top-0 z-10">
                     <h2 className="text-lg sm:text-xl font-bold text-gray-800">Invoice Preview</h2>
+                     <div className="flex items-center gap-4 bg-white p-2 rounded-md border shadow-sm">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-600">Bill No.</label>
+                            <input 
+                                type="text"
+                                value={billNo}
+                                onChange={(e) => setBillNo(e.target.value)}
+                                className="p-1 border rounded-md text-sm w-40"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-600">Bill Date</label>
+                             <input 
+                                type="date"
+                                value={billDate}
+                                onChange={(e) => setBillDate(e.target.value)}
+                                className="p-1 border rounded-md text-sm"
+                            />
+                        </div>
+                    </div>
                     <div className="flex items-center space-x-2">
                         <button onClick={handleDownloadPDF} className="flex items-center bg-ssk-red text-white px-3 py-2 rounded-md hover:bg-red-700 font-semibold">
                             <DownloadIcon className="w-5 h-5 mr-1"/>Download PDF
@@ -211,7 +242,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, lorryRecei
                     </div>
                 </div>
                 <div className="p-2 sm:p-4 overflow-x-auto">
-                    <InvoiceContent ref={previewRef} lorryReceipts={lorryReceipts} companyDetails={companyDetails} />
+                    <InvoiceContent ref={previewRef} lorryReceipts={lorryReceipts} companyDetails={companyDetails} billNo={billNo} billDate={billDate} />
                 </div>
             </div>
         </div>

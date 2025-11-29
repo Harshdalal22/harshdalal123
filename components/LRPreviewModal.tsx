@@ -17,6 +17,10 @@ declare const html2pdf: any;
 
 // A dedicated component for the LR content to be reused for screen and print.
 export const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyDetails: CompanyDetails; showCompanyDetails: boolean }>(({ lr, companyDetails, showCompanyDetails }, ref) => {
+    // FIX: Explicitly typed the `reduce` callback parameters and cast the `Object.values` result to `number[]` to resolve a TypeScript error where the `charge` variable was being inferred as `unknown`, preventing arithmetic operations.
+    const totalCharges = (Object.values(lr.charges || {}) as number[]).reduce((sum: number, charge: number) => sum + (charge || 0), 0);
+    const totalToPay = (Number(lr.freight) || 0) + totalCharges;
+
     return (
         <div ref={ref} className="printable-area p-2 bg-white text-black font-sans w-[710px] lg:w-full mx-auto border-2 border-black">
             {/* Dynamic Header */}
@@ -178,19 +182,20 @@ export const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyD
                         <td className="border-t-2 border-r-2 border-black p-1 text-center align-top font-bold text-black">{lr.chargedWeight}</td>
                         <td className="border-t-2 border-r-2 border-black p-0 align-top bg-blue-50">
                             <div className="grid grid-cols-2 h-full text-center">
-                                <div className="border-b border-r border-black p-1">Hamail</div><div className="border-b border-black p-1 font-bold text-black">0.00</div>
-                                <div className="border-b border-r border-black p-1">Sur.CH.</div><div className="border-b border-black p-1 font-bold text-black">0.00</div>
-                                <div className="border-b border-r border-black p-1">St.CH.</div><div className="border-b border-black p-1 font-bold text-black">0.00</div>
-                                <div className="border-b border-r border-black p-1">Collection CH.</div><div className="border-b border-black p-1 font-bold text-black">0.00</div>
-                                <div className="border-b border-r border-black p-1">D.Dty CH.</div><div className="border-b border-black p-1 font-bold text-black">0.00</div>
-                                <div className="border-b border-r border-black p-1">Other CH.</div><div className="border-b border-black p-1 font-bold text-black">0.00</div>
-                                <div className="border-b border-r border-black p-1">Risk CH.</div><div className="border-b border-black p-1 font-bold text-black">0.00</div>
-                                <div className="border-r border-black p-1 font-bold">Total</div><div className="p-1 font-bold text-black">0.00</div>
+                                {/* FIX: Replaced `as any` casting with direct property access and nullish checks for type safety and to fix display errors. */}
+                                <div className="border-b border-r border-black p-1">Hamail</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && lr.charges.hamail > 0 ? lr.charges.hamail.toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">Sur.CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && lr.charges.surCharge > 0 ? lr.charges.surCharge.toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">St.CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && lr.charges.stCharge > 0 ? lr.charges.stCharge.toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">Collection CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && lr.charges.collectionCharge > 0 ? lr.charges.collectionCharge.toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">D.Dty CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && lr.charges.ddCharge > 0 ? lr.charges.ddCharge.toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">Other CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && lr.charges.otherCharge > 0 ? lr.charges.otherCharge.toFixed(2) : ''}</div>
+                                <div className="border-b border-r border-black p-1">Risk CH.</div><div className="border-b border-black p-1 font-bold text-black">{lr.charges && lr.charges.riskCharge > 0 ? lr.charges.riskCharge.toFixed(2) : ''}</div>
+                                <div className="border-r border-black p-1 font-bold">Total</div><div className="p-1 font-bold text-black">{totalCharges > 0 ? totalCharges.toFixed(2) : ''}</div>
                             </div>
                         </td>
-                        <td className="border-t-2 border-r-2 border-black p-1 align-top text-center font-bold text-black">0.00</td>
-                        <td className="border-t-2 border-black p-1 align-bottom text-right">
-                            {/* Grand Total amount removed as per user request */}
+                        <td className="border-t-2 border-r-2 border-black p-1 align-top text-center font-bold text-black">{Number(lr.freight).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td className="border-t-2 border-black p-1 align-top">
+                            
                         </td>
                     </tr>
                     <tr>
@@ -215,7 +220,7 @@ export const LRContent = forwardRef<HTMLDivElement, { lr: LorryReceipt; companyD
                                 <div>
                                     <p>Endorsement Its Is Intended To use Consignee Copy Of the Set For The Purpose Of Borrowing From The Consignee Bank</p>
                                     <p className="my-2">The Court In Delhi Alone Shall Have Jurisdiction In Respect Of The Claims And Matters Arising Under The Consignment Or Of The Claims And Matter Arising Under The Goods Entrusted For Transport</p>
-                                    <p className="mt-2 text-[9px]">Value : <span className="font-bold text-black">0.00</span></p>
+                                    <p className="mt-2 text-[9px]">Value : <span className="font-bold text-black">{Number(lr.invoiceAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></p>
                                      <div className="grid grid-cols-2 text-[9px] mt-1">
                                         {lr.gstPaidBy && <p>GST Paid By: <span className="font-bold text-black">{lr.gstPaidBy}</span></p>}
                                         

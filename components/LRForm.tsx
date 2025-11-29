@@ -228,8 +228,8 @@ const LRForm: React.FC<LRFormProps> = ({ onSave, existingLR, onCancel, companyDe
         );
     }
     
-    // FIX: Explicitly type reduce callback parameters to fix 'unknown' type error.
-    const totalCharges = Object.values(formData.charges).reduce((sum: number, charge: unknown) => sum + (Number(charge) || 0), 0);
+    // FIX: Explicitly typed the `reduce` callback parameters and cast the `Object.values` result to `number[]` to resolve a TypeScript error where the `charge` variable was being inferred as `unknown`, preventing arithmetic operations.
+    const totalCharges = (Object.values(formData.charges) as number[]).reduce((sum: number, charge: number) => sum + (charge || 0), 0);
     const inputClass = "w-full p-2 border-gray-300 bg-white rounded-md text-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-ssk-blue focus:border-transparent transition-all duration-200";
     const labelClass = "block text-xs font-bold text-gray-600 uppercase mb-1";
 
