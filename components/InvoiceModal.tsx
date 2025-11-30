@@ -30,14 +30,14 @@ const InvoiceContent = forwardRef<HTMLDivElement, { lorryReceipts: LorryReceipt[
 
 
     return (
-        <div ref={ref} className="printable-area p-4 bg-white text-black font-['Calibri',sans-serif] w-[710px] lg:w-full mx-auto border-2 border-black text-sm">
+        <div ref={ref} className="printable-area p-4 bg-white text-black font-['Calibri',sans-serif] w-[710px] lg:w-full mx-auto border border-gray-600 text-sm">
             {/* Header */}
             <div className="text-center text-black">
                 <p className="font-bold">JAI DADA UDMI RAM</p>
                 <p className="text-xs">SUBJECT TO HARYANA JURISDICTION</p>
             </div>
             
-            <div className="flex justify-between items-center mt-1 pb-2 border-b-2 border-black">
+            <div className="flex justify-between items-center mt-1 pb-2 border-b border-gray-600">
                 <div className="w-1/4 flex justify-start">
                      {companyDetails.logoUrl ? 
                         <img src={companyDetails.logoUrl} alt="Company Logo" className="h-16 w-auto object-contain" /> :
@@ -71,18 +71,18 @@ const InvoiceContent = forwardRef<HTMLDivElement, { lorryReceipts: LorryReceipt[
             <p className="font-bold text-black mt-2">GST :- {billedTo.gst}</p>
 
             {/* Table */}
-            <table className="w-full border-collapse border-2 border-black mt-2 text-xs text-black">
+            <table className="w-full border-collapse border border-gray-600 mt-2 text-xs text-black">
                 <thead className="font-bold text-center">
                     <tr>
-                        <th className="border-2 border-black p-1 w-[5%]">Sr.No</th>
-                        <th className="border-2 border-black p-1 w-[10%]">Date</th>
-                        <th className="border-2 border-black p-1 w-[12%]">Truck</th>
-                        <th className="border-2 border-black p-1 w-[12%]">LR No.</th>
-                        <th className="border-2 border-black p-1">From</th>
-                        <th className="border-2 border-black p-1">To</th>
-                        <th className="border-2 border-black p-1 w-[10%]">Freight</th>
-                        <th className="border-2 border-black p-1 w-[10%]">Other Charges</th>
-                        <th className="border-2 border-black p-1 w-[10%]">Balance</th>
+                        <th className="border border-gray-600 p-1 w-[5%]">Sr.No</th>
+                        <th className="border border-gray-600 p-1 w-[10%]">Date</th>
+                        <th className="border border-gray-600 p-1 w-[12%]">Truck</th>
+                        <th className="border border-gray-600 p-1 w-[12%]">LR No.</th>
+                        <th className="border border-gray-600 p-1">From</th>
+                        <th className="border border-gray-600 p-1">To</th>
+                        <th className="border border-gray-600 p-1 w-[10%]">Freight</th>
+                        <th className="border border-gray-600 p-1 w-[10%]">Other Charges</th>
+                        <th className="border border-gray-600 p-1 w-[10%]">Balance</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -91,27 +91,27 @@ const InvoiceContent = forwardRef<HTMLDivElement, { lorryReceipts: LorryReceipt[
                         const totalCharges = (Object.values(lr.charges || {}) as number[]).reduce((chargeSum: number, charge: number) => chargeSum + (charge || 0), 0);
                         return (
                             <tr key={lr.lrNo} style={{ height: '24px' }}>
-                                <td className="border-2 border-black p-1 text-center">{index + 1}</td>
-                                <td className="border-2 border-black p-1 text-center">{new Date(lr.date).toLocaleDateString('en-GB')}</td>
-                                <td className="border-2 border-black p-1">{lr.truckNo}</td>
-                                <td className="border-2 border-black p-1 text-center">{lr.lrNo}</td>
-                                <td className="border-2 border-black p-1">{lr.fromPlace}</td>
-                                <td className="border-2 border-black p-1">{lr.toPlace}</td>
-                                <td className="border-2 border-black p-1 text-right">{Number(lr.freight).toFixed(2)}</td>
-                                <td className="border-2 border-black p-1 text-right">{totalCharges.toFixed(2)}</td>
-                                <td className="border-2 border-black p-1 text-right">{(Number(lr.freight) + totalCharges).toFixed(2)}</td>
+                                <td className="border border-gray-600 p-1 text-center">{index + 1}</td>
+                                <td className="border border-gray-600 p-1 text-center">{new Date(lr.date).toLocaleDateString('en-GB')}</td>
+                                <td className="border border-gray-600 p-1">{lr.truckNo}</td>
+                                <td className="border border-gray-600 p-1 text-center">{lr.lrNo}</td>
+                                <td className="border border-gray-600 p-1">{lr.fromPlace}</td>
+                                <td className="border border-gray-600 p-1">{lr.toPlace}</td>
+                                <td className="border border-gray-600 p-1 text-right">{Number(lr.freight).toFixed(2)}</td>
+                                <td className="border border-gray-600 p-1 text-right">{totalCharges.toFixed(2)}</td>
+                                <td className="border border-gray-600 p-1 text-right">{(Number(lr.freight) + totalCharges).toFixed(2)}</td>
                             </tr>
                         );
                     })}
                     {Array.from({ length: Math.max(0, 15 - lorryReceipts.length) }).map((_, i) => (
                         <tr key={`empty-${i}`} style={{ height: '24px' }}>
-                            {Array.from({ length: 9 }).map((_, j) => <td key={j} className="border-2 border-black"></td>)}
+                            {Array.from({ length: 9 }).map((_, j) => <td key={j} className="border border-gray-600"></td>)}
                         </tr>
                     ))}
                 </tbody>
                 <tfoot className="text-black font-bold text-xs">
                     <tr>
-                        <td colSpan={6} className="border-2 border-black p-1 align-top">
+                        <td colSpan={6} className="border border-gray-600 p-1 align-top">
                             <p>GSTIN : {companyDetails.gstn}</p>
                             <p className="mt-1">PAN No. : {companyDetails.pan}</p>
                             <div className="mt-2">
@@ -122,35 +122,35 @@ const InvoiceContent = forwardRef<HTMLDivElement, { lorryReceipts: LorryReceipt[
                                 <p>IFSCCODE : {companyDetails.bankDetails.ifscCode}</p>
                             </div>
                         </td>
-                        <td colSpan={3} className="border-2 border-black p-0 align-top">
+                        <td colSpan={3} className="border border-gray-600 p-0 align-top">
                             <table className="w-full text-xs font-bold">
                                 <tbody>
                                     <tr>
-                                        <td className="border-b-2 border-black p-1 bg-black text-white">AMOUNT</td>
-                                        <td className="border-b-2 border-black p-1 text-right bg-black text-white">{totalAmount.toFixed(2)}</td>
+                                        <td className="border-b border-gray-600 p-1 bg-blue-100 text-black">AMOUNT</td>
+                                        <td className="border-b border-gray-600 p-1 text-right bg-blue-100 text-black">{totalAmount.toFixed(2)}</td>
                                     </tr>
                                     <tr>
-                                        <td className="border-b-2 border-black p-1 bg-black text-white">CGST</td>
-                                        <td className="border-b-2 border-black p-1 text-right bg-black text-white">{totalCgst.toFixed(2)}</td>
+                                        <td className="border-b border-gray-600 p-1 bg-blue-100 text-black">CGST</td>
+                                        <td className="border-b border-gray-600 p-1 text-right bg-blue-100 text-black">{totalCgst.toFixed(2)}</td>
                                     </tr>
                                     <tr>
-                                        <td className="border-b-2 border-black p-1 bg-black text-white">SGST</td>
-                                        <td className="border-b-2 border-black p-1 text-right bg-black text-white">{totalSgst.toFixed(2)}</td>
+                                        <td className="border-b border-gray-600 p-1 bg-blue-100 text-black">SGST</td>
+                                        <td className="border-b border-gray-600 p-1 text-right bg-blue-100 text-black">{totalSgst.toFixed(2)}</td>
                                     </tr>
                                     <tr>
-                                        <td className="p-1 h-[60px] align-top bg-black text-white">IGST</td>
-                                        <td className="p-1 text-right align-top bg-black text-white">{totalIgst.toFixed(2)}</td>
+                                        <td className="p-1 h-[60px] align-top bg-blue-100 text-black">IGST</td>
+                                        <td className="p-1 text-right align-top bg-blue-100 text-black">{totalIgst.toFixed(2)}</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </td>
                     </tr>
                     <tr>
-                        <td colSpan={6} className="border-x-2 border-b-2 border-black p-1 align-bottom">
+                        <td colSpan={6} className="border-x border-b border-gray-600 p-1 align-bottom">
                              <p>Rupees(word): {amountInWords} Rupees</p>
                         </td>
-                        <td colSpan={3} className="border-x-2 border-b-2 border-black p-0">
-                             <div className="border-t-2 border-black py-1 px-1 flex justify-between bg-black text-white font-bold">
+                        <td colSpan={3} className="border-x border-b border-gray-600 p-0">
+                             <div className="border-t border-gray-600 py-1 px-1 flex justify-between bg-blue-100 text-black font-bold">
                                 <span>NET AMOUNT</span>
                                 <span>{netAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
                              </div>
@@ -181,7 +181,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, lorryRecei
 
     useEffect(() => {
         if (isOpen && lorryReceipts.length > 0) {
-            const suggestedBillNo = `INV-${new Date().getFullYear()}-${String(lorryReceipts.length).padStart(4, '0')}`;
+            // Suggest a bill number based on count or date - customizable
+             const suggestedBillNo = `INV-${new Date().getFullYear()}-${String(lorryReceipts.length).padStart(4, '0')}`;
             setBillNo(suggestedBillNo);
             setBillDate(new Date().toISOString().split('T')[0]);
         }
